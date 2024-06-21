@@ -52,6 +52,8 @@ def extract_info_from_conllu(conllu_data):
                     sense = columns[10]
                     wordRoles = columns[11:]
                     # breakpoint()
+                    # remove \n
+                    wordRoles[-1] = wordRoles[-1].replace("\n", "")
 
                     tokens.append((token_id, word))
                     
@@ -73,7 +75,7 @@ def extract_info_from_conllu(conllu_data):
 
             associated_roles = 0 # filter relations with no arguments
             for idx, wordRoles in sorted(roles.items()):
-                if (idx != token_id) and (wordRoles[rel_position] != "_" and wordRoles[rel_position] != "C-V"):
+                if (idx != token_id) and (wordRoles[rel_position] != "_"):
                     span = get_subtree_span(idx, deprel_dict)
                     arg_span = f"{min(span)}:{max(span)}-{wordRoles[rel_position]}"
                     args.append(arg_span)
