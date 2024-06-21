@@ -2,7 +2,7 @@ from dataloaders.preprocess_nombank import main as preprocess_UP
 from dataloaders.preprocess_UP import main as preprocess_nombank
 import os
 
-def preprocess_datasets(UP=True, nombank=True):
+def preprocess_datasets(UP=True, nombank=False):
     # create folder datasets/preprocessed
     if (not os.path.exists('datasets/preprocessed')):
         os.makedirs('datasets/preprocessed')
@@ -11,3 +11,6 @@ def preprocess_datasets(UP=True, nombank=True):
         preprocess_UP()
     if nombank:
         preprocess_nombank()
+
+if __name__ == '__main__':
+    preprocess_datasets(UP=True, nombank=False)

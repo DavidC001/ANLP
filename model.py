@@ -52,6 +52,7 @@ class SRL_BERT(nn.Module):
 
         # Combine the hidden states
         results = []
+        # breakpoint()
         for i in range(batch_size):
             relation_hidden_states = []
             for pos in relations_positions[i]:
@@ -72,7 +73,8 @@ class SRL_BERT(nn.Module):
                     relation_hidden_states.append(combined_states)
             
             if relation_hidden_states:
-                relation_hidden_states = torch.cat(relation_hidden_states, dim=0)
+                relation_hidden_states = torch.stack(relation_hidden_states)
+                # breakpoint()
                 role_logits = self.role_classifier(relation_hidden_states).view(len(relations_positions[i]), -1, self.role_classifier.out_features)
                 # breakpoint()
                 results.append(role_logits)

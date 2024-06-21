@@ -12,6 +12,16 @@ def get_conceptnet_relationships(concept):
         relationships.append((start, rel, end))
     return relationships
 
+def random_walk(concept, depth=1):
+    relationships = get_conceptnet_relationships(concept)
+    # print(f"Relationships for {concept}: {relationships}")
+    if depth == 0:
+        return relationships
+    #select a random relationship
+    rel = relationships[0]
+    next_concept = rel[2]
+    return [rel] + random_walk(next_concept, depth-1)
+
 def generate_srl_phrases(concept):
     relationships = get_conceptnet_relationships(concept)
     print(f"Relationships for {concept}: {relationships}")
@@ -43,3 +53,7 @@ print(f"Concept: {concept}\n SRL Phrases: {srl_phrases}\n")
 for phrase, roles in srl_phrases:
     print(f"Phrase: {phrase}")
     print(f"SRL Roles: {roles}\n")
+
+concept = "dog"
+walk = random_walk(concept, depth=3)
+print(f"Random walk for {concept}: {walk}")
