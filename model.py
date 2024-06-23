@@ -8,7 +8,7 @@ from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenize
 from dataloaders.UP_dataloader import roles
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes,role_classes, role_layers, device):
+    def __init__(self, model_name, sense_classes, role_classes, role_layers, device):
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
 
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, [num_roles], device='cuda')
+    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda')
     model.load_state_dict(torch.load("models/SRL_BERT_TEST_bella.pt"))
     text = "Fausto eats polenta."
     relational_logits, senses_logits, results = model.inference(text)
