@@ -59,18 +59,16 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
 
     for i in range(len(results)):
         role_logits = results[i]
-        role_probs = torch.sigmoid(role_logits)
         role_labels = labels[i].to(role_logits.device).float()
 
         # breakpoint()
         # Calculate positive weight for role classification for each role
         pos_weight = torch.tensor([max(1,(role_labels[:,:,i] == 0).float().sum().item()) / max(1,(role_labels[:,:,i] == 1).float().sum().item()) for i in range(role_labels.shape[2])]).to(role_logits.device)
-        neg_weight = torch.tensor([max(1,(role_labels[:,:,i] == 1).float().sum().item()) / max(1,(role_labels[:,:,i] == 0).float().sum().item()) for i in range(role_labels.shape[2])]).to(role_logits.device)
 
         # Weighted Binary Cross-Entropy Loss
         # breakpoint()
-        loss = -(pos_weight * role_labels * torch.log(role_probs) + neg_weight * (1 - role_labels) * torch.log(1 - role_probs))
-        loss = loss.mean(dim=[0, 1]).sum()
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='mean')
+        loss = criterion(role_logits, role_labels)
         role_loss += loss
 
         # Compute accuracy and F1 score for role classification
@@ -111,6 +109,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
     # sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels)
     sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
     rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
+
 
     result = {
         "loss": weight_rel * rel_loss + weight_sense * sense_loss + weight_role * rol_loss,
@@ -177,7 +176,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                          senses_logits, senses_labels, 
                          role_results, role_labels,
-                         1, 0.5, 1)
+                         1, 1, 5)
 
         loss_dict['loss'].backward()
         optimizer.step()
@@ -275,7 +274,10 @@ def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
 
             relational_logits, senses_logits, role_results = model(input_ids, attention_masks, relations, word_ids)
 
-            loss_dict = loss(relation_label_masks, relational_logits, relation_labels, senses_logits, senses_labels, role_results, role_labels)
+            loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
+                             senses_logits, senses_labels, 
+                             role_results, role_labels,
+                             1, 1, 5)
 
             total_loss += loss_dict['loss'].item()
 
