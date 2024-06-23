@@ -7,7 +7,7 @@ import torch
 
 
 def train_SRL():
-    train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=126, shuffle=True)
+    train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=128, shuffle=True)
 
     model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', mean=True)
 
