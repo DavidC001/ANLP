@@ -30,16 +30,16 @@ def collate_fn(batch):
     
     for index, item in enumerate(batch):
         input_ids.append(item['tokenized_text'] + [0] * (max_len - len(item['tokenized_text'])))
-        word_ids.append(item['word_ids'] + [None] * (max_len - len(item['word_ids'])))
+        word_ids.append(item['word_ids'] + [-1] * (max_len - len(item['word_ids'])))
         attention_masks.append(item['attention_mask'] + [0] * (max_len - len(item['attention_mask'])))
 
         # Senses
-        for i in range(len(item['rel_position'])):
-            try:
-                senses_labels[relation_num][senses.index(item['labels'][i]['sense'])] = 1
-            except:
-                print(f"Sense not found: {item['labels'][i]['sense']}")
-            relation_num += 1
+        # for i in range(len(item['rel_position'])):
+        #     try:
+        #         senses_labels[relation_num][senses.index(item['labels'][i]['sense'])] = 1
+        #     except:
+        #         print(f"Sense not found: {item['labels'][i]['sense']}")
+        #     relation_num += 1
     
         # relations
         rel_pos = []
@@ -49,13 +49,14 @@ def collate_fn(batch):
             rel_pos.append(pos)
         relations.append(rel_pos)
 
+        for rel in rel_pos:
+            relation_labels[index][rel] = 1
+
         seen_words = set()
-        for i in word_ids[-1]:
-            if i in item['rel_position']:
-                relation_labels[index][i] = 1
-            if i not in seen_words and i != -1:
+        for i,word in enumerate(item['word_ids']):
+            if (word not in seen_words) and (word != -1):
                 relation_label_masks[index][i] = 1
-                seen_words.add(i)
+                seen_words.add(word)
 
         # SRL labels
         phrase_labels = []
@@ -71,8 +72,8 @@ def collate_fn(batch):
         rel_senses.append([label_set['sense'] for label_set in item['labels']])
     
     input_ids = torch.tensor(input_ids)
-    word_ids = [[word_id if word_id is not None else -1 for word_id in wids] for wids in word_ids]
     
+    # breakpoint()
     return {
         'text': [item['text'] for item in batch], # For debugging purposes
         'input_ids': input_ids,
