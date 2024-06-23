@@ -57,18 +57,21 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
     correct_roles = 0
     total_roles = 0
 
-    batch_roles = 0
     for i in range(len(results)):
         role_logits = results[i]
+        role_probs = torch.sigmoid(role_logits)
         role_labels = labels[i].to(role_logits.device).float()
 
-        # Calculate positive weight for role classification
-        pos_weight_role = (role_labels == 0).float().sum() / (role_labels == 1).float().sum()
+        # breakpoint()
+        # Calculate positive weight for role classification for each role
+        pos_weight = torch.tensor([max(1,(role_labels[:,:,i] == 0).float().sum().item()) / max(1,(role_labels[:,:,i] == 1).float().sum().item()) for i in range(role_labels.shape[2])]).to(role_logits.device)
+        neg_weight = torch.tensor([max(1,(role_labels[:,:,i] == 1).float().sum().item()) / max(1,(role_labels[:,:,i] == 0).float().sum().item()) for i in range(role_labels.shape[2])]).to(role_logits.device)
 
-        # Use BCEWithLogitsLoss with pos_weight
-        loss_function_role_weighted = nn.BCEWithLogitsLoss(pos_weight=pos_weight_role)
-        role_loss += loss_function_role_weighted(role_logits, role_labels) 
-        batch_roles += role_logits.size(0)
+        # Weighted Binary Cross-Entropy Loss
+        # breakpoint()
+        loss = -(pos_weight * role_labels * torch.log(role_probs) + neg_weight * (1 - role_labels) * torch.log(1 - role_probs))
+        loss = loss.mean(dim=[0, 1]).sum()
+        role_loss += loss
 
         # Compute accuracy and F1 score for role classification
         role_preds = (torch.sigmoid(role_logits) > 0.5).float()
@@ -79,8 +82,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
                 all_role_labels.append(role_labels[j][k].cpu().numpy())
                 all_role_preds.append(role_preds[j][k].cpu().numpy())
         
-
-    role_loss /= batch_roles
+    role_loss /= len(results)
     
     # compute accuracy for each role
     for i in range(len(all_role_labels)):
@@ -101,16 +103,20 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
 
 def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Tensor, 
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
-         role_logits: torch.Tensor, role_labels: torch.Tensor):
+         role_logits: torch.Tensor, role_labels: torch.Tensor,
+         weight_rel: float=1, weight_sense: float=1, weight_role: float=1):
     
     # Compute loss for each task
     rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels)
-    sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels)
+    # sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels)
+    sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
     rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
 
     result = {
-        "loss": rel_loss + sense_loss + rol_loss,
-        "rel_loss": rel_loss, "sense_loss": sense_loss, "role_loss": rol_loss,
+        "loss": weight_rel * rel_loss + weight_sense * sense_loss + weight_role * rol_loss,
+        "rel_loss": rel_loss, 
+        "sense_loss": sense_loss, 
+        "role_loss": rol_loss,
 
         "rel_accuracy": rel_accuracy, "rel_precision": rel_precision, "rel_recall": rel_recall, "rel_f1": rel_f1,
         
@@ -168,7 +174,10 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
 
         relational_logits, senses_logits, role_results = model(input_ids, attention_masks, relations, word_ids)
 
-        loss_dict = loss(relation_label_masks, relational_logits, relation_labels, senses_logits, senses_labels, role_results, role_labels)
+        loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
+                         senses_logits, senses_labels, 
+                         role_results, role_labels,
+                         1, 0.5, 1)
 
         loss_dict['loss'].backward()
         optimizer.step()
@@ -324,47 +333,30 @@ def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
 
 def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, tag: str):
     print(f"\t{tag} Loss: {result['loss']:.4f}")
-    print(f"\t{tag} Rel Loss: {result['rel_loss']:.4f}")
-    print(f"\t{tag} Sense Loss: {result['sense_loss']:.4f}")
-    print(f"\t{tag} Role Loss: {result['role_loss']:.4f}")
-
-    print(f"\t{tag} Rel Acc: {result['rel_accuracy']:.4f}")
-    print(f"\t{tag} Sense Acc: {result['sense_accuracy']:.4f}")
-    print(f"\t{tag} Role Acc: {result['role_accuracy']:.4f}")
-
-    print(f"\t{tag} Rel Precision: {result['rel_precision']:.4f}")
-    print(f"\t{tag} Sense Precision: {result['sense_precision']:.4f}")
-    print(f"\t{tag} Role Precision: {result['role_precision']:.4f}")
-
-    print(f"\t{tag} Rel Recall: {result['rel_recall']:.4f}")
-    print(f"\t{tag} Sense Recall: {result['sense_recall']:.4f}")
-    print(f"\t{tag} Role Recall: {result['role_recall']:.4f}")
-
-    print(f"\t{tag} Rel F1: {result['rel_f1']:.4f}")
-    print(f"\t{tag} Sense F1: {result['sense_f1']:.4f}")
-    print(f"\t{tag} Role F1: {result['role_f1']:.4f}")
+    print(f"\t{tag} Rel Loss: {result['rel_loss']:.4f}, accuracy: {result['rel_accuracy']:.4f}, precision: {result['rel_precision']:.4f}, recall: {result['rel_recall']:.4f}, f1: {result['rel_f1']:.4f}")
+    # print(f"\t{tag} Sense Loss: {result['sense_loss']:.4f}, accuracy: {result['sense_accuracy']:.4f}, precision: {result['sense_precision']:.4f}, recall: {result['sense_recall']:.4f}, f1: {result['sense_f1']:.4f}")
+    print(f"\t{tag} Role Loss: {result['role_loss']:.4f}, accuracy: {result['role_accuracy']:.4f}, precision: {result['role_precision']:.4f}, recall: {result['role_recall']:.4f}, f1: {result['role_f1']:.4f}")
 
     tensorboard.add_scalar(f'Loss/{tag}', result['loss'], epoch)
+    
     tensorboard.add_scalar(f'Rel Loss/{tag}', result['rel_loss'], epoch)
-    tensorboard.add_scalar(f'Sense Loss/{tag}', result['sense_loss'], epoch)
-    tensorboard.add_scalar(f'Role Loss/{tag}', result['role_loss'], epoch)
-
     tensorboard.add_scalar(f'Rel Acc/{tag}', result['rel_accuracy'], epoch)
-    tensorboard.add_scalar(f'Sense Acc/{tag}', result['sense_accuracy'], epoch)
-    tensorboard.add_scalar(f'Role Acc/{tag}', result['role_accuracy'], epoch)
-
     tensorboard.add_scalar(f'Rel Precision/{tag}', result['rel_precision'], epoch)
-    tensorboard.add_scalar(f'Sense Precision/{tag}', result['sense_precision'], epoch)
-    tensorboard.add_scalar(f'Role Precision/{tag}', result['role_precision'], epoch)
-
     tensorboard.add_scalar(f'Rel Recall/{tag}', result['rel_recall'], epoch)
-    tensorboard.add_scalar(f'Sense Recall/{tag}', result['sense_recall'], epoch)
-    tensorboard.add_scalar(f'Role Recall/{tag}', result['role_recall'], epoch)
-
     tensorboard.add_scalar(f'Rel F1/{tag}', result['rel_f1'], epoch)
-    tensorboard.add_scalar(f'Sense F1/{tag}', result['sense_f1'], epoch)
-    tensorboard.add_scalar(f'Role F1/{tag}', result['role_f1'], epoch)
+    
+    # tensorboard.add_scalar(f'Sense Loss/{tag}', result['sense_loss'], epoch)
+    # tensorboard.add_scalar(f'Sense Acc/{tag}', result['sense_accuracy'], epoch)
+    # tensorboard.add_scalar(f'Sense Precision/{tag}', result['sense_precision'], epoch)
+    # tensorboard.add_scalar(f'Sense Recall/{tag}', result['sense_recall'], epoch)
+    # tensorboard.add_scalar(f'Sense F1/{tag}', result['sense_f1'], epoch)
 
+    tensorboard.add_scalar(f'Role Loss/{tag}', result['role_loss'], epoch)
+    tensorboard.add_scalar(f'Role Acc/{tag}', result['role_accuracy'], epoch)
+    tensorboard.add_scalar(f'Role Precision/{tag}', result['role_precision'], epoch)
+    tensorboard.add_scalar(f'Role Recall/{tag}', result['role_recall'], epoch)
+    tensorboard.add_scalar(f'Role F1/{tag}', result['role_f1'], epoch)
+    
 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
         epochs: int=100, init_lr: float=0.001, scheduler_step: int=5, scheduler_gamma: float=0.9,
