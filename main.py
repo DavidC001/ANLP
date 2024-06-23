@@ -16,7 +16,7 @@ def train_SRL():
           device='cuda', name='SRL_BERT_TEST')
 
     # Save the model
-    torch.save(model, "models/SRL_BERT_TEST.pt")
+    torch.save(model.state_dict(), "models/SRL_BERT_TEST.pt")
 
 if __name__ == '__main__':
     train_SRL()
