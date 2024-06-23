@@ -8,7 +8,7 @@ from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenize
 from dataloaders.UP_dataloader import roles
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, role_layers, device):
+    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', mean=False):
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
 
@@ -24,7 +24,12 @@ class SRL_BERT(nn.Module):
         #         self.senses_classifier_layers.append(nn.ReLU())
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
-        role_layers = [self.bert.config.hidden_size * 2] + role_layers + [role_classes]
+        self.mean = mean
+        if mean:
+            role_classifer_input_size = self.bert.config.hidden_size
+        else:
+            role_classifer_input_size = self.bert.config.hidden_size * 2
+        role_layers = [role_classifer_input_size] + role_layers + [role_classes]
         self.role_layers = []
         for i in range(len(role_layers) - 1):
             self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
@@ -81,17 +86,20 @@ class SRL_BERT(nn.Module):
                 if pos is not None and pos < seq_len:
                     relation_hidden_state = hidden_states[i, pos]
                     
-                    combined_states = torch.cat(
-                        [first_hidden_states[i, word_id].unsqueeze(0) for word_id in set(word_ids[i]) if word_id != -1], 
-                        dim=0
-                    )
+                    if(self.mean):
+                        # mean between the two states
+                        combined_states = (first_hidden_states + relation_hidden_state) / 2
+                    else:
+                        combined_states = torch.cat(
+                            [first_hidden_states[i, word_id].unsqueeze(0) for word_id in set(word_ids[i]) if word_id != -1], 
+                            dim=0
+                        )
 
-                    # breakpoint()
-
-                    combined_states = torch.cat(
-                        (combined_states, relation_hidden_state.unsqueeze(0).expand_as(combined_states)), 
-                        dim=-1
-                    )
+                        combined_states = torch.cat(
+                            (combined_states, relation_hidden_state.unsqueeze(0).expand_as(combined_states)), 
+                            dim=-1
+                        )
+                    
                     relation_hidden_states.append(combined_states)
             
             if relation_hidden_states:
@@ -153,7 +161,7 @@ class SRL_BERT(nn.Module):
             senses_logits = None
 
             results = self.role_compute(hidden_states, [relation_positions], [word_ids])
-            results = [result.squeeze(0) for result in results]
+            # results = [result.squeeze(0) for result in results]
 
         return relational_logits, senses_logits, results
 
@@ -189,7 +197,7 @@ if __name__ == '__main__':
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
     model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda')
-    model.load_state_dict(torch.load("models/SRL_BERT_TEST_bella.pt"))
-    text = "Fausto eats polenta."
+    model.load_state_dict(torch.load("models/SRL_BERT_TEST_bigger.pt"))
+    text = "Fausto eats polenta at the beach while sipping beer."
     relational_logits, senses_logits, results = model.inference(text)
     print_results(relational_logits, senses_logits, results, text)
