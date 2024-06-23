@@ -8,7 +8,7 @@ from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenize
 from dataloaders.UP_dataloader import roles
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, device):
+    def __init__(self, model_name, sense_classes,role_classes, role_layers, device):
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
 
@@ -24,7 +24,13 @@ class SRL_BERT(nn.Module):
         #         self.senses_classifier_layers.append(nn.ReLU())
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
-        self.role_classifier = nn.Linear(self.bert.config.hidden_size * 2, role_classes)
+        role_layers = [self.bert.config.hidden_size * 2] + role_layers + [role_classes]
+        self.role_layers = []
+        for i in range(len(role_layers) - 1):
+            self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
+            if i < len(role_layers) - 2:
+                self.role_layers.append(nn.ReLU())
+        self.role_classifier = nn.Sequential(*self.role_layers)
 
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
@@ -182,7 +188,7 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, device='cuda')
+    model = SRL_BERT("bert-base-uncased", num_senses, [num_roles], device='cuda')
     model.load_state_dict(torch.load("models/SRL_BERT_TEST_bella.pt"))
     text = "Fausto eats polenta."
     relational_logits, senses_logits, results = model.inference(text)
