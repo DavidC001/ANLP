@@ -64,11 +64,12 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
         # breakpoint()
         # Calculate positive weight for role classification for each role
         pos_weight = torch.tensor([max(1,(role_labels[:,:,i] == 0).float().sum().item()) / max(1,(role_labels[:,:,i] == 1).float().sum().item()) for i in range(role_labels.shape[2])]).to(role_logits.device)
+        # Have all the roles to have the same weight for the loss
 
         # Weighted Binary Cross-Entropy Loss
         # breakpoint()
-        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='mean')
-        loss = criterion(role_logits, role_labels)
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
+        loss = criterion(role_logits, role_labels).view(-1,28).mean(0).sum()
         role_loss += loss
 
         # Compute accuracy and F1 score for role classification
@@ -110,6 +111,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
     sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
     rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
 
+    # print(f"Rel Loss: {rel_loss:.4f}, Role Loss: {rol_loss:.4f}")
 
     result = {
         "loss": weight_rel * rel_loss + weight_sense * sense_loss + weight_role * rol_loss,
@@ -176,7 +178,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                          senses_logits, senses_labels, 
                          role_results, role_labels,
-                         1, 1, 5)
+                         1, 1, 1)
 
         loss_dict['loss'].backward()
         optimizer.step()
@@ -277,7 +279,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
             loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                              senses_logits, senses_labels, 
                              role_results, role_labels,
-                             1, 1, 5)
+                             1, 1, 1)
 
             total_loss += loss_dict['loss'].item()
 
@@ -334,7 +336,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
 
 
 def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, tag: str):
-    print(f"\t{tag} Loss: {result['loss']:.4f}")
+    print(f"\n\t{tag} Loss: {result['loss']:.4f}")
     print(f"\t{tag} Rel Loss: {result['rel_loss']:.4f}, accuracy: {result['rel_accuracy']:.4f}, precision: {result['rel_precision']:.4f}, recall: {result['rel_recall']:.4f}, f1: {result['rel_f1']:.4f}")
     # print(f"\t{tag} Sense Loss: {result['sense_loss']:.4f}, accuracy: {result['sense_accuracy']:.4f}, precision: {result['sense_precision']:.4f}, recall: {result['sense_recall']:.4f}, f1: {result['sense_f1']:.4f}")
     print(f"\t{tag} Role Loss: {result['role_loss']:.4f}, accuracy: {result['role_accuracy']:.4f}, precision: {result['role_precision']:.4f}, recall: {result['role_recall']:.4f}, f1: {result['role_f1']:.4f}")

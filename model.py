@@ -183,7 +183,7 @@ if __name__ == '__main__':
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
     model = SRL_BERT("bert-base-uncased", num_senses, num_roles, device='cuda')
-    model.load_state_dict(torch.load("models/SRL_BERT_TEST.pt"))
-    text = "He drives in the car and goes to the store."
+    model.load_state_dict(torch.load("models/SRL_BERT_TEST_bella.pt"))
+    text = "Fausto eats polenta."
     relational_logits, senses_logits, results = model.inference(text)
     print_results(relational_logits, senses_logits, results, text)
