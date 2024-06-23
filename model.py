@@ -97,11 +97,11 @@ class SRL_BERT(nn.Module):
             if relation_hidden_states:
                 relation_hidden_states = torch.stack(relation_hidden_states)
                 # breakpoint()
-                role_logits = self.role_classifier(relation_hidden_states).view(len(relations_positions[i]), -1, self.role_classifier.out_features)
+                role_logits = self.role_classifier(relation_hidden_states).view(len(relations_positions[i]), -1, self.role_classifier[-1].out_features)
                 # breakpoint()
                 results.append(role_logits)
             else:
-                results.append(torch.empty(0, self.role_classifier.out_features).to(hidden_states.device))
+                raise ValueError("No relations found in the sentence")
 
         return results
 
