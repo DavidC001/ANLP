@@ -8,8 +8,6 @@ from torch import nn
 import sys 
 sys.path.append('.')
 
-from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
-
 # BERT fast TOKENIZER
 from transformers import AutoTokenizer
 
@@ -73,12 +71,13 @@ class UP_Dataset(Dataset):
             if phrase_id not in self.data:
                 tokenized = tokenizer(data[3])
                 word_ids = tokenized.word_ids()
+                word_ids = [(word_id if word_id is not None else -1) for word_id in word_ids]
 
                 # brutta soluzione a J.
                 delta = 0
                 seen_ids = set()
                 for i, word_id in enumerate(word_ids):
-                    if word_id == None or word_id==0: continue
+                    if word_id <= 0: continue
                     start, end = tokenized.word_to_chars(word_id)
                     if data[3][start-1] != ' ' and word_id not in seen_ids:
                         delta += 1
