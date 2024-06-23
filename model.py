@@ -88,11 +88,11 @@ class SRL_BERT(nn.Module):
                     
                     if(self.mean):
                         # mean between the two states
-                        combined_states = (first_hidden_states + relation_hidden_state) / 2
+                        combined_states = (first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]] + relation_hidden_state) / 2
                     else:
-                        combined_states = torch.cat(
+                        combined_states = torch.cat( 
                             [first_hidden_states[i, word_id].unsqueeze(0) for word_id in set(word_ids[i]) if word_id != -1], 
-                            dim=0
+                            dim=0 
                         )
 
                         combined_states = torch.cat(
@@ -100,12 +100,13 @@ class SRL_BERT(nn.Module):
                             dim=-1
                         )
                     
+                    # breakpoint()
+                    
                     relation_hidden_states.append(combined_states)
             
             if relation_hidden_states:
                 relation_hidden_states = torch.stack(relation_hidden_states)
-                # breakpoint()
-                role_logits = self.role_classifier(relation_hidden_states).view(len(relations_positions[i]), -1, self.role_classifier[-1].out_features)
+                role_logits = self.role_classifier(relation_hidden_states)
                 # breakpoint()
                 results.append(role_logits)
             else:
