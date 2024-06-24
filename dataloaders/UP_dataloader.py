@@ -99,7 +99,7 @@ class UP_Dataset(Dataset):
             self.senses.add(sense)
             self.sense_count[sense] += 1
             SRL = data[5:]
-            SRL_labels = [[1]] * len(data[3].split())
+            SRL_labels = [[]] * len(data[3].split())
             rel_position = None
             for label in SRL:
                 label = label.split('-')
@@ -111,11 +111,7 @@ class UP_Dataset(Dataset):
                 start, end = int(start), int(end) + 1
                 # Handle multiple roles for the same span
                 for i in range(start, end):
-                    if SRL_labels[i][0] == 1:
-                        SRL_labels[i] = [roles.index(label)]
-                    else:
-                        # Create a multi-label scenario
-                        SRL_labels[i].append(roles.index(label))
+                    SRL_labels[i].append(roles.index(label))
 
                 if label == 'rel':
                     rel_position = int(start)

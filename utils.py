@@ -62,10 +62,10 @@ def collate_fn(batch):
         phrase_labels = []
 
         for label_set in item['labels']:
-            binary_labels = [[0] * (len(roles)-1) for _ in range(len(item['text'].split()))]
+            binary_labels = [[0] * (len(roles)-2) for _ in range(len(item['text'].split()))]
             for i, label in enumerate(label_set['SRL']):
                 for l in label:
-                    binary_labels[i][l-1] = 1 #because we do not want to classify the relation label
+                    binary_labels[i][l-2] = 1 #because we do not want to classify the relation label and none
             phrase_labels.append(torch.tensor(binary_labels))
         role_labels.append(torch.stack(phrase_labels))
         
@@ -104,6 +104,6 @@ def get_dataloaders(root, batch_size=32, shuffle=True):
     global senses
     senses = train_dataset.senses 
     num_senses = len(senses)
-    num_roles = len(roles) - 1
+    num_roles = len(roles) - 2
 
     return train_loader, dev_loader, test_loader, num_senses, num_roles

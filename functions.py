@@ -67,9 +67,8 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
         # Have all the roles to have the same weight for the loss
 
         # Weighted Binary Cross-Entropy Loss
-        # breakpoint()
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
-        loss = criterion(role_logits, role_labels).view(-1,28).mean(0).sum()
+        loss = criterion(role_logits, role_labels).view(-1, role_labels.shape[-1]).mean(0).sum()
         role_loss += loss
 
         # Compute accuracy and F1 score for role classification
