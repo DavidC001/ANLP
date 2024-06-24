@@ -25,7 +25,6 @@ class GatedCombination(nn.Module):
         else:
             transformed = relation_hidden_state.expand_as(word_hidden_states)
         
-        print(gating_scores)
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
 class SRL_BERT(nn.Module):
