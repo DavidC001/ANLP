@@ -236,7 +236,14 @@ def print_results(relational_logits, senses_logits, results, text):
             print(f"\tRelation {j}")
             for k, role_logits in enumerate(relation_role_logits):
                 # breakpoint()
-                print(f"\t\tWord: {text[k]} - predicted roles: {[f"{roles[q+1]} {nn.Sigmoid()(role_logits[q]):.2f}" for q in range(len(role_logits)) if (nn.Sigmoid()(role_logits[q]) > 0.6 and q != 0)]}")
+                predicted_roles = [
+                    f"{roles[q+1]} {nn.Sigmoid()(role_logits[q]):.2f}"
+                    for q in range(len(role_logits))
+                    if nn.Sigmoid()(role_logits[q]) > 0.6 and q != 0
+                ]
+
+                print(f"\t\tWord: {text[k]} - predicted roles: {predicted_roles}")
+                
                 # for q, role_logit in enumerate(role_logits):
                 #     print(f"\t\t\tRole: {roles[q+1]} - Probability: {nn.Sigmoid()(role_logit)}")
 
@@ -244,7 +251,7 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='gating', norm_layer=True)
+    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='gating', norm_layer=False)
     model.load_state_dict(torch.load("models/SRL_BERT_TEST_gate.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
     relational_logits, senses_logits, results = model.inference(text)
