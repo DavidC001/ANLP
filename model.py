@@ -255,9 +255,9 @@ def print_results(relational_logits, senses_logits, results, text):
             for k, role_logits in enumerate(relation_role_logits):
                 # breakpoint()
                 predicted_roles = [
-                    f"{roles[q+1]} {nn.Sigmoid()(role_logits[q]):.2f}"
+                    f"{roles[q+2]} {nn.Sigmoid()(role_logits[q]):.2f}"
                     for q in range(len(role_logits))
-                    if nn.Sigmoid()(role_logits[q]) > 0.6 and q != 0
+                    if nn.Sigmoid()(role_logits[q]) > 0.5 and q != 0
                 ]
 
                 print(f"\t\tWord: {text[k]} - predicted roles: {predicted_roles}")
@@ -267,10 +267,17 @@ def print_results(relational_logits, senses_logits, results, text):
 
 if __name__ == '__main__':
     from utils import get_dataloaders
-    _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
+    # _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [100], device='cuda', combine_method='gating', norm_layer=True, dim_reduction=0)
-    model.load_state_dict(torch.load("models/SRL_BERT_TEST_gateed_100_norm.pt"))
+
+    name = input("Insert the name of the model to load: ")
+    #read configuration from file json
+    import json
+    with open(f"models/{name}.json", "r") as f:
+        config = json.load(f)
+    
+    model = SRL_BERT(**config)
+    model.load_state_dict(torch.load(f"models/{name}.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
 
     while text != "exit":
