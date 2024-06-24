@@ -11,61 +11,26 @@ def train_SRL():
     train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
     tests = {
-        "SRL_BERT_concat_100": {
+        "SRL_BERT_concat_50_norm_L2": {
             "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
             "combine_method": "concatenation",
-            "role_layers": [100],
-            "norm_layer": False,
-            "dim_reduction": 0
-        },
-        "SRL_BERT_concat_100_norm": {
-            "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
-            "combine_method": "concatenation",
-            "role_layers": [100],
+            "role_layers": [],
             "norm_layer": True,
-            "dim_reduction": 0
+            "dim_reduction": 50
         },
-        "SRL_BERT_mean_100": {
-            "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
-            "combine_method": "mean",
-            "role_layers": [100],
-            "norm_layer": False,
-            "dim_reduction": 0
-        },
-        "SRL_BERT_mean_100_norm": {
-            "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
-            "combine_method": "mean",
-            "role_layers": [100],
-            "norm_layer": True,
-            "dim_reduction": 0
-        },
-        "SRL_BERT_gated_100": {
+        "SRL_BERT_gated_50_norm_L2": {
             "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
             "combine_method": "gating",
-            "role_layers": [100],
-            "norm_layer": False,
-            "dim_reduction": 0
-        },
-        "SRL_BERT_gated_100_norm": {
-            "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
-            "combine_method": "gating",
-            "role_layers": [50],
+            "role_layers": [],
             "norm_layer": True,
-            "dim_reduction": 0
+            "dim_reduction": 50
         },
-        "SRL_BERT_gated_transform_100": {
+        "SRL_BERT_gated_transform_50_norm_L2": {
             "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
             "combine_method": "gating_transform",
-            "role_layers": [100],
-            "norm_layer": False,
-            "dim_reduction": 0
-        },
-        "SRL_BERT_gated_transform_100_norm": {
-            "model_name": "bert-base-uncased", # "bert-base-uncased", "bert-large-uncased"
-            "combine_method": "gating_transform",
-            "role_layers": [100],
+            "role_layers": [],
             "norm_layer": True,
-            "dim_reduction": 0
+            "dim_reduction": 50
         },
     }
 
@@ -75,7 +40,7 @@ def train_SRL():
         tests[test]["role_classes"] = num_roles
         model = SRL_BERT(**tests[test])
         train(model, train_loader, val_loader, test_loader,
-            epochs=10, init_lr=0.0001, scheduler_step=2, scheduler_gamma=0.9,
+            epochs=10, init_lr=0.0001, scheduler_step=2, scheduler_gamma=0.9, l2_lambda=1e-5,
             device='cuda', name=test)
         # Save the model
         torch.save(model.state_dict(), f"models/{test}.pt")

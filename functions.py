@@ -102,7 +102,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
 def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Tensor, 
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
          role_logits: torch.Tensor, role_labels: torch.Tensor,
-         model: nn.Module, l2_lambda: float=0.01,
+         model: nn.Module, l2_lambda: float=0.001,
          weight_rel: float=1, weight_sense: float=1, weight_role: float=1,
          ):
     
@@ -134,7 +134,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
 
 
 
-def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, device: torch.device):
+def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, device: torch.device):
 
     model.train()
 
@@ -182,7 +182,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                          senses_logits, senses_labels, 
                          role_results, role_labels,
-                         model, l2_lambda=0.01,
+                         model, l2_lambda=l2_lambda,
                          weight_rel=1, weight_sense=1, weight_role=1)
 
         loss_dict['loss'].backward()
@@ -369,14 +369,14 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
     
 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
-        epochs: int=100, init_lr: float=0.001, scheduler_step: int=5, scheduler_gamma: float=0.9,
+        epochs: int=100, init_lr: float=0.001, scheduler_step: int=5, scheduler_gamma: float=0.9, l2_lambda: float=1e-5,
         device: torch.device="cuda", name: str="SRL"):
     tensorboard = SummaryWriter(log_dir=f'runs/{name}')
     optimizer = optim.AdamW(model.parameters(), lr=init_lr)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step, gamma=scheduler_gamma)
 
     for epoch in tqdm(range(epochs)):
-        train_result = train_step(model, train_loader, optimizer, device)
+        train_result = train_step(model, train_loader, optimizer, l2_lambda, device)
         val_result = eval_step(model, val_loader, device)
 
         print()
