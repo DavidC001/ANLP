@@ -12,42 +12,42 @@ def train_SRL():
     tests = {
         "SRL_BERT_concat_100": {
             "combine_method": "concat",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": False
         },
         "SRL_BERT_concat_100_norm": {
             "combine_method": "concat",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": True
         },
         "SRL_BERT_mean_100": {
             "combine_method": "mean",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": False
         },
         "SRL_BERT_mean_100_norm": {
             "combine_method": "mean",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": True
         },
         "SRL_BERT_gated_100": {
             "combine_method": "gated",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": False
         },
         "SRL_BERT_gated_100_norm": {
             "combine_method": "gated",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": True
         },
         "SRL_BERT_gated_transform_100": {
             "combine_method": "gating_transform",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": False
         },
         "SRL_BERT_gated_transform_100_norm": {
             "combine_method": "gating_transform",
-            "layers": [100],
+            "role_layers": [100],
             "norm_layer": True
         },
     }
