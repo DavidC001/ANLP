@@ -63,8 +63,8 @@ class SRL_BERT(nn.Module):
         self.rel_reduction = (dim_reduction > 0)
         if self.rel_reduction:
             role_size = dim_reduction
-            self.rel_reduction = nn.Linear(hidden_size, dim_reduction)
-            self.word_reduction = nn.Linear(hidden_size, dim_reduction)
+            self.rel_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
+            self.word_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
 
         if combine_method == 'gating_transform':
             self.combiner = GatedCombination(role_size, transform=True)
