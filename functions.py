@@ -377,7 +377,7 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
 
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model, train_loader, optimizer, l2_lambda, device)
-        val_result = eval_step(model, val_loader, 0, device)
+        val_result = eval_step(model, val_loader, l2_lambda, device)
 
         print()
         print_and_log_results(train_result, tensorboard, epoch, "Train")
@@ -388,9 +388,9 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
 
         scheduler.step()
 
-    final_result = eval_step(model, train_loader, 0, device)
-    final_val_result = eval_step(model, val_loader, 0, device)
-    test_result = eval_step(model, test_loader, 0, device)
+    final_result = eval_step(model, train_loader, l2_lambda=l2_lambda, device=device)
+    final_val_result = eval_step(model, val_loader, l2_lambda=l2_lambda, device=device)
+    test_result = eval_step(model, test_loader, l2_lambda=l2_lambda, device=device)
     print_and_log_results(final_result, tensorboard, epochs, "Train")
     print_and_log_results(final_val_result, tensorboard, epochs, "Val")
     print_and_log_results(test_result, tensorboard, epochs, "Test")
