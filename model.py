@@ -193,7 +193,6 @@ class SRL_BERT(nn.Module):
         tokenizer = TreebankWordTokenizer()
         text = tokenizer.tokenize(text)
         text = " ".join(text)
-        print(text)
 
         with torch.no_grad():
             tokenized_text = self.tokenizer(text, return_tensors='pt')
