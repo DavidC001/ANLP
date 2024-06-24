@@ -7,48 +7,56 @@ import torch
 
 
 def train_SRL():
-    train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=64, shuffle=True)
+    train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
     tests = {
         "SRL_BERT_concat_100": {
             "combine_method": "concatenation",
             "role_layers": [100],
-            "norm_layer": False
+            "norm_layer": False,
+            "dim_reduction": 0
         },
         "SRL_BERT_concat_100_norm": {
             "combine_method": "concatenation",
             "role_layers": [100],
-            "norm_layer": True
+            "norm_layer": True,
+            "dim_reduction": 0
         },
         "SRL_BERT_mean_100": {
             "combine_method": "mean",
             "role_layers": [100],
-            "norm_layer": False
+            "norm_layer": False,
+            "dim_reduction": 0
         },
         "SRL_BERT_mean_100_norm": {
             "combine_method": "mean",
             "role_layers": [100],
-            "norm_layer": True
+            "norm_layer": True,
+            "dim_reduction": 0
         },
         "SRL_BERT_gated_100": {
             "combine_method": "gating",
             "role_layers": [100],
-            "norm_layer": False
+            "norm_layer": False,
+            "dim_reduction": 0
         },
         "SRL_BERT_gated_100_norm": {
             "combine_method": "gating",
-            "role_layers": [100],
-            "norm_layer": True
+            "role_layers": [50],
+            "norm_layer": True,
+            "dim_reduction": 0
         },
         "SRL_BERT_gated_transform_100": {
             "combine_method": "gating_transform",
             "role_layers": [100],
-            "norm_layer": False
+            "norm_layer": False,
+            "dim_reduction": 0
         },
         "SRL_BERT_gated_transform_100_norm": {
             "combine_method": "gating_transform",
             "role_layers": [100],
-            "norm_layer": True
+            "norm_layer": True,
+            "dim_reduction": 0
         },
     }
 

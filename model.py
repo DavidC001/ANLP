@@ -28,7 +28,7 @@ class GatedCombination(nn.Module):
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean', norm_layer=False):
+    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean', norm_layer=False, dim_reduction=0):
         '''
             Initialize the model
 
@@ -59,17 +59,23 @@ class SRL_BERT(nn.Module):
         #         self.senses_classifier_layers.append(nn.ReLU())
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
-        if combine_method == 'gating_transform':
-            self.combiner = GatedCombination(hidden_size, transform=True)
-        elif combine_method == 'gating':
-            self.combiner = GatedCombination(hidden_size, transform=False)
+        role_size = hidden_size
+        self.rel_reduction = (dim_reduction > 0)
+        if self.rel_reduction:
+            role_size = dim_reduction
+            self.rel_reduction = nn.Linear(hidden_size, dim_reduction)
+            self.word_reduction = nn.Linear(hidden_size, dim_reduction)
 
+        if combine_method == 'gating_transform':
+            self.combiner = GatedCombination(role_size, transform=True)
+        elif combine_method == 'gating':
+            self.combiner = GatedCombination(role_size, transform=False)
 
         # Configure input size based on combination method
         if combine_method == 'concatenation':
-            role_classifer_input_size = 2 * hidden_size
-        else:  # concatenation
-            role_classifer_input_size = hidden_size
+            role_classifer_input_size = 2 * role_size
+        else: 
+            role_classifer_input_size = role_size
 
         self.norm = norm_layer
         if norm_layer:
@@ -132,8 +138,11 @@ class SRL_BERT(nn.Module):
             for pos in relations_positions[i]:
                 if pos is not None and pos < seq_len:
                     relation_hidden_state = hidden_states[i, pos]
+                    relation_hidden_state = self.rel_reduction(relation_hidden_state) if self.rel_reduction else relation_hidden_state
                     
                     word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
+                    word_hidden_states = self.word_reduction(word_hidden_states) if self.rel_reduction else word_hidden_states
+
                     if(self.combine_method == 'mean'):
                         # mean between the two states
                         combined_states = (word_hidden_states + relation_hidden_state) / 2
@@ -260,8 +269,8 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='gating_transform', norm_layer=True)
-    model.load_state_dict(torch.load("models/SRL_BERT_TEST_gate_norm.pt"))
+    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [100], device='cuda', combine_method='gating', norm_layer=True, dim_reduction=0)
+    model.load_state_dict(torch.load("models/SRL_BERT_TEST_gateed_100_norm.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
 
     while text != "exit":
