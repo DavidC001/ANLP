@@ -10,15 +10,22 @@ from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenize
 from dataloaders.UP_dataloader import roles
 
 class GatedCombination(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, transform=False):
         super(GatedCombination, self).__init__()
         self.gate = nn.Linear(2 * hidden_size, hidden_size)
-        self.transform = nn.Linear(2 * hidden_size, hidden_size)
+        self.transform = transform
+        if (transform): self.transform_layer = nn.Linear(2 * hidden_size, hidden_size)
 
     def forward(self, relation_hidden_state, word_hidden_states):
         combined = torch.cat([relation_hidden_state.expand_as(word_hidden_states), word_hidden_states], dim=-1)
         gating_scores = torch.sigmoid(self.gate(combined))
-        transformed = torch.tanh(self.transform(combined))
+
+        if self.transform:
+            transformed = torch.tanh(self.transform_layer(combined))
+        else:
+            transformed = relation_hidden_state.expand_as(word_hidden_states)
+        
+        print(gating_scores)
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
 class SRL_BERT(nn.Module):
@@ -53,8 +60,12 @@ class SRL_BERT(nn.Module):
         #         self.senses_classifier_layers.append(nn.ReLU())
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
-        if combine_method == 'gating':
-            self.combiner = GatedCombination(hidden_size)
+        if combine_method == 'gating_transform':
+            combine_method = 'gating'
+            self.combiner = GatedCombination(hidden_size, transform=True)
+        elif combine_method == 'gating':
+            self.combiner = GatedCombination(hidden_size, transform=False)
+
 
         # Configure input size based on combination method
         if combine_method == 'mean' or combine_method == 'gating':
@@ -251,8 +262,11 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='gating', norm_layer=False)
-    model.load_state_dict(torch.load("models/SRL_BERT_TEST_gate.pt"))
+    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='gating_transform', norm_layer=True)
+    model.load_state_dict(torch.load("models/SRL_BERT_TEST_gate_norm.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
-    relational_logits, senses_logits, results = model.inference(text)
-    print_results(relational_logits, senses_logits, results, text)
+
+    while text != "exit":
+        relational_logits, senses_logits, results = model.inference(text)
+        print_results(relational_logits, senses_logits, results, text)
+        text = input("Insert a sentence to analyze (type 'exit' to quit): ")
