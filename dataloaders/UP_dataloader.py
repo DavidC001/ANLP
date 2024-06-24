@@ -111,7 +111,7 @@ class UP_Dataset(Dataset):
                 start, end = int(start), int(end) + 1
                 # Handle multiple roles for the same span
                 for i in range(start, end):
-                    SRL_labels[i].append(roles.index(label))
+                    SRL_labels[i] = SRL_labels[i] + [roles.index(label)]
 
                 if label == 'rel':
                     rel_position = int(start)

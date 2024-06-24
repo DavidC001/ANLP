@@ -65,7 +65,8 @@ def collate_fn(batch):
             binary_labels = [[0] * (len(roles)-2) for _ in range(len(item['text'].split()))]
             for i, label in enumerate(label_set['SRL']):
                 for l in label:
-                    binary_labels[i][l-2] = 1 #because we do not want to classify the relation label and none
+                    # because we do not want to classify the relation label and none
+                    if(l>1): binary_labels[i][l-2] = 1 
             phrase_labels.append(torch.tensor(binary_labels))
         role_labels.append(torch.stack(phrase_labels))
         
