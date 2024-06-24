@@ -102,7 +102,9 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
 def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Tensor, 
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
          role_logits: torch.Tensor, role_labels: torch.Tensor,
-         weight_rel: float=1, weight_sense: float=1, weight_role: float=1):
+         model: nn.Module, l2_lambda: float=0.01,
+         weight_rel: float=1, weight_sense: float=1, weight_role: float=1,
+         ):
     
     # Compute loss for each task
     rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels)
@@ -111,9 +113,12 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
     rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
 
     # print(f"Rel Loss: {rel_loss:.4f}, Role Loss: {rol_loss:.4f}")
+    total_loss = weight_rel * rel_loss + weight_sense * sense_loss + weight_role * rol_loss
+    # should help avoid having classes always be predicted, do not count the parameters of model.bert
+    total_loss += l2_lambda * sum(p[1].pow(2.0).sum() for p in model.named_parameters() if 'bert' not in p[0])
 
     result = {
-        "loss": weight_rel * rel_loss + weight_sense * sense_loss + weight_role * rol_loss,
+        "loss": total_loss,
         "rel_loss": rel_loss, 
         "sense_loss": sense_loss, 
         "role_loss": rol_loss,
@@ -177,7 +182,8 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                          senses_logits, senses_labels, 
                          role_results, role_labels,
-                         1, 1, 1)
+                         model, l2_lambda=0.01,
+                         weight_rel=1, weight_sense=1, weight_role=1)
 
         loss_dict['loss'].backward()
         optimizer.step()
@@ -278,7 +284,8 @@ def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
             loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                              senses_logits, senses_labels, 
                              role_results, role_labels,
-                             1, 1, 1)
+                             model, l2_lambda=0,
+                             weight_rel=1, weight_sense=1, weight_role=1)
 
             total_loss += loss_dict['loss'].item()
 
