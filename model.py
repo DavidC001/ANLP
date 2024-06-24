@@ -1,18 +1,34 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from transformers import AutoModel
 from transformers import AutoTokenizer
 import math
 
+
 from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 from dataloaders.UP_dataloader import roles
 
+class GatedCombination(nn.Module):
+    def __init__(self, hidden_size):
+        super(GatedCombination, self).__init__()
+        self.gate = nn.Linear(2 * hidden_size, hidden_size)
+        self.transform = nn.Linear(2 * hidden_size, hidden_size)
+
+    def forward(self, relation_hidden_state, word_hidden_states):
+        combined = torch.cat([relation_hidden_state.expand_as(word_hidden_states), word_hidden_states], dim=-1)
+        gating_scores = torch.sigmoid(self.gate(combined))
+        transformed = torch.tanh(self.transform(combined))
+        return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
+
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', mean=False):
+    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean'):
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
+        self.combine_method = combine_method  # 'mean', 'concatenation', 'gating'
+        hidden_size = self.bert.config.hidden_size
 
-        self.relational_classifier = nn.Linear(self.bert.config.hidden_size, 1)
+        self.relational_classifier = nn.Linear(hidden_size, 1)
 
         # senses_layers = [(self.bert.config.hidden_size, math.ceil(sense_classes/4)), 
         #                  (math.ceil(sense_classes/4), math.ceil(sense_classes/2)),
@@ -24,11 +40,15 @@ class SRL_BERT(nn.Module):
         #         self.senses_classifier_layers.append(nn.ReLU())
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
-        self.mean = mean
-        if mean:
-            role_classifer_input_size = self.bert.config.hidden_size
-        else:
-            role_classifer_input_size = self.bert.config.hidden_size * 2
+        if combine_method == 'gating':
+            self.combiner = GatedCombination(hidden_size)
+
+        # Configure input size based on combination method
+        if combine_method == 'mean' or combine_method == 'gating':
+            role_classifer_input_size = hidden_size
+        else:  # concatenation
+            role_classifer_input_size = 2 * hidden_size
+
         role_layers = [role_classifer_input_size] + role_layers + [role_classes]
         self.role_layers = []
         for i in range(len(role_layers) - 1):
@@ -86,19 +106,14 @@ class SRL_BERT(nn.Module):
                 if pos is not None and pos < seq_len:
                     relation_hidden_state = hidden_states[i, pos]
                     
-                    if(self.mean):
+                    word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
+                    if(self.combine_method == 'mean'):
                         # mean between the two states
-                        combined_states = (first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]] + relation_hidden_state) / 2
-                    else:
-                        combined_states = torch.cat( 
-                            [first_hidden_states[i, word_id].unsqueeze(0) for word_id in set(word_ids[i]) if word_id != -1], 
-                            dim=0 
-                        )
-
-                        combined_states = torch.cat(
-                            (combined_states, relation_hidden_state.unsqueeze(0).expand_as(combined_states)), 
-                            dim=-1
-                        )
+                        combined_states = (word_hidden_states + relation_hidden_state) / 2
+                    elif(self.combine_method == 'concatenation'):
+                        combined_states = torch.cat([relation_hidden_state.expand_as(word_hidden_states), word_hidden_states], dim=-1)
+                    elif(self.combine_method == 'gating'):
+                        combined_states = self.combiner(relation_hidden_state, word_hidden_states)
                     
                     # breakpoint()
                     
@@ -140,6 +155,7 @@ class SRL_BERT(nn.Module):
         tokenizer = TreebankWordTokenizer()
         text = tokenizer.tokenize(text)
         text = " ".join(text)
+        print(text)
 
         with torch.no_grad():
             tokenized_text = self.tokenizer(text, return_tensors='pt')
@@ -147,6 +163,16 @@ class SRL_BERT(nn.Module):
             attention_mask = tokenized_text['attention_mask']
             word_ids = tokenized_text.word_ids()
             word_ids = [(word_id if word_id is not None else -1) for word_id in word_ids]
+            # brutta soluzione a J.
+            delta = 0
+            seen_ids = set()
+            for i, word_id in enumerate(word_ids):
+                if word_id <= 0: continue
+                start, end = tokenized_text.word_to_chars(word_id)
+                if text[start-1] != ' ' and word_id not in seen_ids:
+                    delta += 1
+                    seen_ids.add(word_id)
+                word_ids[i] = word_id - delta
 
             input_ids = input_ids.to(self.device)
             attention_mask = attention_mask.to(self.device)
@@ -156,7 +182,8 @@ class SRL_BERT(nn.Module):
             relational_logits = self.rel_compute(hidden_states, word_ids).squeeze(0)
             #apply sigmoid
             relational_probabilities = torch.sigmoid(relational_logits)
-            relation_positions = [i for i in range(len(relational_probabilities)) if relational_probabilities[i] > 0.5]
+            relation_positions = [i for i in range(len(relational_probabilities)) if relational_probabilities[i] > 0.75]
+            relation_positions = [word_ids.index(i) for i in relation_positions]
 
             # senses_logits = self.sense_compute(hidden_states, [relation_positions])
             senses_logits = None
@@ -189,7 +216,7 @@ def print_results(relational_logits, senses_logits, results, text):
             print(f"\tRelation {j}")
             for k, role_logits in enumerate(relation_role_logits):
                 # breakpoint()
-                print(f"\t\tWord: {text[k]} - predicted roles: {[roles[q+1] for q in range(len(role_logits)) if nn.Sigmoid()(role_logits[q]) > 0.5]}")
+                print(f"\t\tWord: {text[k]} - predicted roles: {[f"{roles[q+1]} {nn.Sigmoid()(role_logits[q])}" for q in range(len(role_logits)) if (nn.Sigmoid()(role_logits[q]) > 0.6 and q != 0)]}")
                 # for q, role_logit in enumerate(role_logits):
                 #     print(f"\t\t\tRole: {roles[q+1]} - Probability: {nn.Sigmoid()(role_logit)}")
 
@@ -197,7 +224,7 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda')
+    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='concatenation')
     model.load_state_dict(torch.load("models/SRL_BERT_TEST_bigger.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
     relational_logits, senses_logits, results = model.inference(text)
