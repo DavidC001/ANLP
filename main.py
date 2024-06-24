@@ -71,8 +71,8 @@ def train_SRL():
 
     for test in tests:
         print(f"\nTraining model {test}")
-        tests[test]["num_senses"] = num_senses
-        tests[test]["num_roles"] = num_roles
+        tests[test]["sense_classes"] = num_senses
+        tests[test]["role_classes"] = num_roles
         model = SRL_BERT(**tests[test])
         train(model, train_loader, val_loader, test_loader,
             epochs=10, init_lr=0.0001, scheduler_step=2, scheduler_gamma=0.9,
