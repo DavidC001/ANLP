@@ -22,7 +22,20 @@ class GatedCombination(nn.Module):
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean'):
+    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean', norm_layer=False):
+        '''
+            Initialize the model
+
+            Parameters:
+                model_name (str): the name of the pretrained encoder model to use
+                sense_classes (int): the number of classes for the senses classifier
+                role_classes (int): the number of classes for the role classifier
+                role_layers (list): a list of integers representing the number of neurons in each layer of the role classifier
+                device (str): the device to use for training
+                combine_method (str): the method to combine the hidden states of the relation and the word
+                norm_layer (bool): whether to use a BatchNorm layer for role classification
+        
+        '''
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
         self.combine_method = combine_method  # 'mean', 'concatenation', 'gating'
@@ -48,6 +61,11 @@ class SRL_BERT(nn.Module):
             role_classifer_input_size = hidden_size
         else:  # concatenation
             role_classifer_input_size = 2 * hidden_size
+
+        self.norm = norm_layer
+        if norm_layer:
+            # Instantiate a LayerNorm layer
+            self.norm_layer = nn.LayerNorm(hidden_size)
 
         role_layers = [role_classifer_input_size] + role_layers + [role_classes]
         self.role_layers = []
@@ -118,9 +136,11 @@ class SRL_BERT(nn.Module):
                     # breakpoint()
                     
                     relation_hidden_states.append(combined_states)
-            
+
             if relation_hidden_states:
                 relation_hidden_states = torch.stack(relation_hidden_states)
+                relation_hidden_states = self.norm_layer(relation_hidden_states) if self.norm else relation_hidden_states
+
                 role_logits = self.role_classifier(relation_hidden_states)
                 # breakpoint()
                 results.append(role_logits)
@@ -216,7 +236,7 @@ def print_results(relational_logits, senses_logits, results, text):
             print(f"\tRelation {j}")
             for k, role_logits in enumerate(relation_role_logits):
                 # breakpoint()
-                print(f"\t\tWord: {text[k]} - predicted roles: {[f"{roles[q+1]} {nn.Sigmoid()(role_logits[q])}" for q in range(len(role_logits)) if (nn.Sigmoid()(role_logits[q]) > 0.6 and q != 0)]}")
+                print(f"\t\tWord: {text[k]} - predicted roles: {[f"{roles[q+1]} {nn.Sigmoid()(role_logits[q]):.2f}" for q in range(len(role_logits)) if (nn.Sigmoid()(role_logits[q]) > 0.6 and q != 0)]}")
                 # for q, role_logit in enumerate(role_logits):
                 #     print(f"\t\t\tRole: {roles[q+1]} - Probability: {nn.Sigmoid()(role_logit)}")
 
@@ -224,8 +244,8 @@ if __name__ == '__main__':
     from utils import get_dataloaders
     _, _, _, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=True)
 
-    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='concatenation')
-    model.load_state_dict(torch.load("models/SRL_BERT_TEST_bigger.pt"))
+    model = SRL_BERT("bert-base-uncased", num_senses, num_roles, [50], device='cuda', combine_method='gating', norm_layer=True)
+    model.load_state_dict(torch.load("models/SRL_BERT_TEST_gate.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
     relational_logits, senses_logits, results = model.inference(text)
     print_results(relational_logits, senses_logits, results, text)
