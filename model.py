@@ -67,15 +67,15 @@ class SRL_BERT(nn.Module):
 
 
         # Configure input size based on combination method
-        if combine_method == 'mean' or combine_method == 'gating':
-            role_classifer_input_size = hidden_size
-        else:  # concatenation
+        if combine_method == 'concatenation':
             role_classifer_input_size = 2 * hidden_size
+        else:  # concatenation
+            role_classifer_input_size = hidden_size
 
         self.norm = norm_layer
         if norm_layer:
             # Instantiate a LayerNorm layer
-            self.norm_layer = nn.LayerNorm(hidden_size)
+            self.norm_layer = nn.LayerNorm(role_classifer_input_size)
 
         role_layers = [role_classifer_input_size] + role_layers + [role_classes]
         self.role_layers = []
