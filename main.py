@@ -59,7 +59,7 @@ def train_SRL():
             epochs=10, init_lr=0.0001, scheduler_step=2, scheduler_gamma=0.9,
             device='cuda', name=test)
         # Save the model
-        torch.save(model.state_dict(), "models/SRL_BERT_TEST.pt")
+        torch.save(model.state_dict(), f"models/{test}.pt")
         print("-"*50)
 
 if __name__ == '__main__':
