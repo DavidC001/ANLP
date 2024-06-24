@@ -241,7 +241,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         "role_accuracy": role_accuracy, "role_precision": role_precision, "role_recall": role_recall, "role_f1": role_f1
     }
 
-def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
+def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, device: torch.device):
     model.eval()
 
     total_loss = 0
@@ -284,7 +284,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, device: torch.device):
             loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                              senses_logits, senses_labels, 
                              role_results, role_labels,
-                             model, l2_lambda=0,
+                             model, l2_lambda=l2_lambda,
                              weight_rel=1, weight_sense=1, weight_role=1)
 
             total_loss += loss_dict['loss'].item()
@@ -377,7 +377,7 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
 
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model, train_loader, optimizer, l2_lambda, device)
-        val_result = eval_step(model, val_loader, device)
+        val_result = eval_step(model, val_loader, 0, device)
 
         print()
         print_and_log_results(train_result, tensorboard, epoch, "Train")
@@ -388,9 +388,9 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
 
         scheduler.step()
 
-    final_result = eval_step(model, train_loader, device)
-    final_val_result = eval_step(model, val_loader, device)
-    test_result = eval_step(model, test_loader, device)
+    final_result = eval_step(model, train_loader, 0, device)
+    final_val_result = eval_step(model, val_loader, 0, device)
+    test_result = eval_step(model, test_loader, 0, device)
     print_and_log_results(final_result, tensorboard, epochs, "Train")
     print_and_log_results(final_val_result, tensorboard, epochs, "Val")
     print_and_log_results(test_result, tensorboard, epochs, "Test")
