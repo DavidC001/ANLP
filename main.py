@@ -11,12 +11,12 @@ def train_SRL():
 
     tests = {
         "SRL_BERT_concat_100": {
-            "combine_method": "concat",
+            "combine_method": "concatenation",
             "role_layers": [100],
             "norm_layer": False
         },
         "SRL_BERT_concat_100_norm": {
-            "combine_method": "concat",
+            "combine_method": "concatenation",
             "role_layers": [100],
             "norm_layer": True
         },
@@ -31,12 +31,12 @@ def train_SRL():
             "norm_layer": True
         },
         "SRL_BERT_gated_100": {
-            "combine_method": "gated",
+            "combine_method": "gating",
             "role_layers": [100],
             "norm_layer": False
         },
         "SRL_BERT_gated_100_norm": {
-            "combine_method": "gated",
+            "combine_method": "gating",
             "role_layers": [100],
             "norm_layer": True
         },

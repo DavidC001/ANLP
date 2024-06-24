@@ -61,7 +61,6 @@ class SRL_BERT(nn.Module):
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
         if combine_method == 'gating_transform':
-            combine_method = 'gating'
             self.combiner = GatedCombination(hidden_size, transform=True)
         elif combine_method == 'gating':
             self.combiner = GatedCombination(hidden_size, transform=False)
@@ -141,7 +140,7 @@ class SRL_BERT(nn.Module):
                         combined_states = (word_hidden_states + relation_hidden_state) / 2
                     elif(self.combine_method == 'concatenation'):
                         combined_states = torch.cat([relation_hidden_state.expand_as(word_hidden_states), word_hidden_states], dim=-1)
-                    elif(self.combine_method == 'gating'):
+                    elif(self.combine_method == 'gating' or self.combine_method == 'gating_transform'):
                         combined_states = self.combiner(relation_hidden_state, word_hidden_states)
                     
                     # breakpoint()
