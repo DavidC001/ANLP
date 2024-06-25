@@ -92,14 +92,14 @@ def collate_fn(batch):
     }
     
 
-def get_dataloaders(root, batch_size=32, shuffle=True):
-    train_dataset = UP_Dataset(root + "en_ewt-up-train.tsv", "bert-base-uncased")
+def get_dataloaders(root, batch_size=32, shuffle=True, model_name="bert-base-uncased"):
+    train_dataset = UP_Dataset(root + "en_ewt-up-train.tsv", model_name)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
-    dev_dataset = UP_Dataset(root + "en_ewt-up-dev.tsv", "bert-base-uncased")
+    dev_dataset = UP_Dataset(root + "en_ewt-up-dev.tsv", model_name)
     dev_loader = DataLoader(dev_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
-    test_dataset = UP_Dataset(root + "en_ewt-up-test.tsv", "bert-base-uncased")
+    test_dataset = UP_Dataset(root + "en_ewt-up-test.tsv", model_name)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
     global senses
