@@ -9,7 +9,7 @@ import json
 
 def train_SRL():
     tests = {
-        "SRL_BERT_gated_transformed_red100_100_norm_L2": {
+        "SRL_BERT_gated_redboth100_100_norm_L2": {
             "model_name": "bert-base-uncased",
             "combine_method": "gating",
             "role_layers": [100],
@@ -17,7 +17,7 @@ def train_SRL():
             "dim_reduction": 100,
             "relation_reduction": True
         },
-        "SRL_BERT_L_gated_transformed_red100_100_norm_L2": {
+        "SRL_BERT_L_gated_redboth100_100_norm_L2": {
             "model_name": "bert-large-uncased",
             "combine_method": "gating",
             "role_layers": [100],
@@ -25,7 +25,7 @@ def train_SRL():
             "dim_reduction": 100,
             "relation_reduction": True
         },
-        "SRL_BERT_C_gated_transformed_red100_100_norm_L2": {
+        "SRL_BERT_C_gated_redboth100_100_norm_L2": {
             "model_name": "bert-base-cased",
             "combine_method": "gating",
             "role_layers": [100],
@@ -33,7 +33,7 @@ def train_SRL():
             "dim_reduction": 100,
             "relation_reduction": True
         },
-        "SRL_BERT_LC_gated_transformed_red100_100_norm_L2": {
+        "SRL_BERT_LC_gated_redboth100_100_norm_L2": {
             "model_name": "bert-large-cased",
             "combine_method": "gating",
             "role_layers": [100],
