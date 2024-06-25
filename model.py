@@ -28,7 +28,7 @@ class GatedCombination(nn.Module):
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean', norm_layer=False, dim_reduction=0):
+    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean', norm_layer=False, dim_reduction=0, relation_reduction=False):
         '''
             Initialize the model
 
@@ -47,8 +47,6 @@ class SRL_BERT(nn.Module):
         self.combine_method = combine_method  # 'mean', 'concatenation', 'gating'
         hidden_size = self.bert.config.hidden_size
 
-        self.relational_classifier = nn.Linear(hidden_size, 1)
-
         # senses_layers = [(self.bert.config.hidden_size, math.ceil(sense_classes/4)), 
         #                  (math.ceil(sense_classes/4), math.ceil(sense_classes/2)),
         #                  (math.floor(sense_classes/2), sense_classes)]
@@ -60,11 +58,17 @@ class SRL_BERT(nn.Module):
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
         role_size = hidden_size
-        self.rel_reduction = (dim_reduction > 0)
-        if self.rel_reduction:
+        self.dim_reduction = (dim_reduction > 0)
+        if self.dim_reduction:
             role_size = dim_reduction
             self.rel_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
             self.word_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
+
+        self.rel_class_reduction = relation_reduction
+        if self.rel_class_reduction:
+            self.relational_classifier = nn.Linear(dim_reduction, 1)
+        else:
+            self.relational_classifier = nn.Linear(hidden_size, 1)
 
         if combine_method == 'gating_transform':
             self.combiner = GatedCombination(role_size, transform=True)
@@ -98,7 +102,11 @@ class SRL_BERT(nn.Module):
         # self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     def rel_compute(self, hidden_states, word_ids):
+        if self.rel_class_reduction and self.dim_reduction>0:
+            hidden_states = self.rel_reduction(hidden_states)
+            
         batch_size, seq_len, hidden_size = hidden_states.size()
+
         first_hidden_states = torch.zeros((batch_size, max(word_ids)+1, hidden_size)).to(hidden_states.device)
         seen_words = set()
         for j, word_id in enumerate(word_ids):
@@ -138,10 +146,10 @@ class SRL_BERT(nn.Module):
             for pos in relations_positions[i]:
                 if pos is not None and pos < seq_len:
                     relation_hidden_state = hidden_states[i, pos]
-                    relation_hidden_state = self.rel_reduction(relation_hidden_state) if self.rel_reduction else relation_hidden_state
+                    relation_hidden_state = self.rel_reduction(relation_hidden_state) if self.dim_reduction>0 else relation_hidden_state
                     
                     word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
-                    word_hidden_states = self.word_reduction(word_hidden_states) if self.rel_reduction else word_hidden_states
+                    word_hidden_states = self.word_reduction(word_hidden_states) if self.dim_reduction>0 else word_hidden_states
 
                     if(self.combine_method == 'mean'):
                         # mean between the two states
@@ -163,7 +171,7 @@ class SRL_BERT(nn.Module):
                 # breakpoint()
                 results.append(role_logits)
             else:
-                raise ValueError("No relations found in the sentence")
+                print("No relations found in the sentence")
 
         return results
 
@@ -175,7 +183,8 @@ class SRL_BERT(nn.Module):
         hidden_states = outputs.last_hidden_state
 
         # Compute the logits for the relational classifier
-        relational_logits = self.relational_classifier(hidden_states).squeeze(-1)
+        relational_class_input = self.rel_reduction(hidden_states) if self.dim_reduction>0 else hidden_states
+        relational_logits = self.relational_classifier(relational_class_input).squeeze(-1)
         
         # Compute the logits for the senses classifier
         # senses_logits = self.sense_compute(hidden_states, relations_positions)
@@ -228,7 +237,7 @@ class SRL_BERT(nn.Module):
             results = self.role_compute(hidden_states, [relation_positions], [word_ids])
             # results = [result.squeeze(0) for result in results]
 
-        return relational_logits, senses_logits, results
+        return  relational_logits, senses_logits, results
 
 def print_results(relational_logits, senses_logits, results, text):
     # tokenize the text as in the training (TreebankWordTokenizer)
@@ -247,16 +256,18 @@ def print_results(relational_logits, senses_logits, results, text):
     # print("Senses logits:")
     # print(senses_logits)
 
+    relation_positions = [i for i in range(len(relational_logits)) if nn.Sigmoid()(relational_logits[i]) > 0.9]
+
     print("Role logits:")
     for i, phrase_role_logits in enumerate(results):
         for j, relation_role_logits in enumerate(phrase_role_logits):
-            print(f"\tRelation {j}")
+            print(f"\tRelation {j} - Word: {text[relation_positions[j]]}")
             for k, role_logits in enumerate(relation_role_logits):
                 # breakpoint()
                 predicted_roles = [
                     f"{roles[q+2]} {nn.Sigmoid()(role_logits[q]):.2f}"
                     for q in range(len(role_logits))
-                    if nn.Sigmoid()(role_logits[q]) > 0.5 and q != 0
+                    if nn.Sigmoid()(role_logits[q]) > 0.75 and q != 0
                 ]
 
                 print(f"\t\tWord: {text[k]} - predicted roles: {predicted_roles}")
@@ -278,6 +289,9 @@ if __name__ == '__main__':
     model = SRL_BERT(**config)
     model.load_state_dict(torch.load(f"models/{name}.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
+
+    #print number of parameters in model excluding bert
+    print(f"Number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
     while text != "exit":
         relational_logits, senses_logits, results = model.inference(text)
