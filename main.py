@@ -44,7 +44,8 @@ def train_SRL():
     }
 
     for test in tests:
-        train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=64, shuffle=True, model_name=tests[test]["model_name"])
+        batch_size = 32 if ("large" in tests[test]["model_name"] and tests[test]["train_bert"]) else 64
+        train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=batch_size, shuffle=True, model_name=tests[test]["model_name"])
         print(f"\nTraining model {test}")
         tests[test]["sense_classes"] = num_senses
         tests[test]["role_classes"] = num_roles
