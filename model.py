@@ -28,7 +28,11 @@ class GatedCombination(nn.Module):
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
 class SRL_BERT(nn.Module):
-    def __init__(self, model_name, sense_classes, role_classes, role_layers, device='cuda', combine_method='mean', norm_layer=False, dim_reduction=0, relation_reduction=False):
+    def __init__(self, model_name, sense_classes, role_classes, 
+                 combine_method='mean', norm_layer=False,
+                 dim_reduction=0, relation_reduction=False,
+                 role_layers=[], role_LSTM=False, train_bert=True,
+                 device='cuda'):
         '''
             Initialize the model
 
@@ -36,14 +40,23 @@ class SRL_BERT(nn.Module):
                 model_name (str): the name of the pretrained encoder model to use
                 sense_classes (int): the number of classes for the senses classifier
                 role_classes (int): the number of classes for the role classifier
-                role_layers (list): a list of integers representing the number of neurons in each layer of the role classifier
-                device (str): the device to use for training
-                combine_method (str): the method to combine the hidden states of the relation and the word
-                norm_layer (bool): whether to use a BatchNorm layer for role classification
+                combine_method (str): the method to combine the hidden states of the words and relations, can be 'mean', 'concatenation', 'gating' or 'gating_transform'
+                norm_layer (bool): whether to use a normalization layer after the combination
+                dim_reduction (int): the size of the hidden states after the reduction
+                relation_reduction (bool): whether to reduce the hidden states before the relational classifier
+                role_layers (list): the sizes of the hidden layers of the role classifier
+                role_LSTM (bool): whether to use an LSTM for the role classification (note: role_layers will be ignored, only its length is used)
+                train_bert (bool): whether to train the BERT model
+                device (str): the device to use for the model
         
         '''
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
+
+        if not train_bert:
+            for param in self.bert.parameters():
+                param.requires_grad = False
+        
         self.combine_method = combine_method  # 'mean', 'concatenation', 'gating'
         hidden_size = self.bert.config.hidden_size
 
@@ -86,15 +99,22 @@ class SRL_BERT(nn.Module):
             # Instantiate a LayerNorm layer
             self.norm_layer = nn.LayerNorm(role_classifer_input_size)
 
-        role_layers = [role_classifer_input_size] + role_layers + [role_classes]
-        self.role_layers = []
-        for i in range(len(role_layers) - 1):
-            self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
-            if i < len(role_layers) - 2:
-                self.role_layers.append(nn.ReLU())
-        self.role_classifier = nn.Sequential(*self.role_layers)
+        self.role_LSTM = role_LSTM
+        if not role_LSTM:
+            role_layers = [role_classifer_input_size] + role_layers + [role_classes]
+            self.role_layers = []
+            for i in range(len(role_layers) - 1):
+                self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
+                if i < len(role_layers) - 2:
+                    self.role_layers.append(nn.ReLU())
+            self.role_classifier = nn.Sequential(*self.role_layers)
+        else:
+            if len(role_layers) > 0:
+                print("Warning: role_layers will be ignored when using an LSTM for role classification")
+            # hoping to make them more stable
+            self.role_classifier = nn.LSTM(role_classifer_input_size, role_classes, len(role_layers), batch_first=True)
 
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         self.to(device)
         self.device = device
@@ -167,8 +187,11 @@ class SRL_BERT(nn.Module):
                 relation_hidden_states = torch.stack(relation_hidden_states)
                 relation_hidden_states = self.norm_layer(relation_hidden_states) if self.norm else relation_hidden_states
 
-                role_logits = self.role_classifier(relation_hidden_states)
-                # breakpoint()
+                if not self.role_LSTM:
+                    role_logits = self.role_classifier(relation_hidden_states)
+                else:
+                    role_logits, _ = self.role_classifier(relation_hidden_states)
+                
                 results.append(role_logits)
             else:
                 print("No relations found in the sentence")
@@ -267,7 +290,7 @@ def print_results(relational_logits, senses_logits, results, text):
                 predicted_roles = [
                     f"{roles[q+2]} {nn.Sigmoid()(role_logits[q]):.2f}"
                     for q in range(len(role_logits))
-                    if nn.Sigmoid()(role_logits[q]) > 0.75 and q != 0
+                    if nn.Sigmoid()(role_logits[q]) > 0.5 and q != 0
                 ]
 
                 print(f"\t\tWord: {text[k]} - predicted roles: {predicted_roles}")
