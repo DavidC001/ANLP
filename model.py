@@ -31,7 +31,7 @@ class SRL_BERT(nn.Module):
     def __init__(self, model_name, sense_classes, role_classes, 
                  combine_method='mean', norm_layer=False,
                  dim_reduction=0, relation_reduction=False,
-                 role_layers=[], role_LSTM=False, train_bert=True,
+                 role_layers=[], role_LSTM=False, train_encoder=True,
                  device='cuda'):
         '''
             Initialize the model
@@ -46,14 +46,14 @@ class SRL_BERT(nn.Module):
                 relation_reduction (bool): whether to reduce the hidden states before the relational classifier
                 role_layers (list): the sizes of the hidden layers of the role classifier
                 role_LSTM (bool): whether to use an LSTM for the role classification (note: role_layers will be ignored, only its length is used)
-                train_bert (bool): whether to train the BERT model
+                train_encoder (bool): whether to train the encoder model
                 device (str): the device to use for the model
         
         '''
         super(SRL_BERT, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
 
-        if not train_bert:
+        if not train_encoder:
             for param in self.bert.parameters():
                 param.requires_grad = False
         
