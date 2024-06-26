@@ -18,23 +18,37 @@ from model import SRL_BERT, print_results
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
 
-def get_spans(text, role_logits, threshold=0.75):
+def get_spans(text, role_logits, threshold=0.6):
     role_spans = {}
 
     for idx, logits in enumerate(role_logits):
         for role_idx, logit in enumerate(logits):
-            if torch.sigmoid(logit) > threshold:
+            prob = torch.sigmoid(logit)
+            if prob > threshold:
                 if role_idx not in role_spans:
-                    role_spans[role_idx] = ([text[idx]], [idx])
+                    role_spans[role_idx] = [([text[idx]], [idx], [prob])]
                 else:
-                    role_spans[role_idx][0].append(text[idx])
-                    role_spans[role_idx][1].append(idx)
+                    if (role_spans[role_idx][-1][1][-1] + 1) == idx: # Check if the current token is contiguous with the previous one
+                        role_spans[role_idx][-1][0].append(text[idx])
+                        role_spans[role_idx][-1][1].append(idx)
+                        role_spans[role_idx][-1][2].append(prob)
+                    else: # If not, start a new span
+                        role_spans[role_idx].append(([text[idx]], [idx], [prob]))
 
-    spans = []
-    for role_idx, (span, pos) in role_spans.items():
-        spans.append((span, pos, roles[role_idx + 2]))
+    final_spans = []
+    for role_idx, spans in role_spans.items():
+        # take the most probable (use mean)
+        max_prob = 0
+        max_span = None
+        for span in spans:
+            prob = torch.mean(torch.tensor(span[2]))
+            if prob > max_prob:
+                max_prob = prob
+                max_span = span
+        
+        final_spans.append((max_span[0], max_span[1], roles[role_idx+2]))
 
-    return spans
+    return final_spans
 
 def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0):
     tokenizer = TreebankWordTokenizer()
@@ -134,17 +148,17 @@ def compute_graph(graph, mode):
 
     if mode == "w":
         # Fetch a Wikipedia article
-        article_title = "Kratos"
-        article_content = fetch_wikipedia_article(article_title)
-        if not article_content:
-            sys.exit("Failed to fetch Wikipedia article.")
+        article_content = None
+        while not article_content:
+            article_title = input("Enter the title of the Wikipedia article: ")
+            article_content = fetch_wikipedia_article(article_title)
     else:
         # Read text from a file text.txt
-        with open("text.txt", "r") as f:
+        with open("text.txt", "r", encoding="utf-8") as f:
             article_content = f.read()
 
     # Initialize the model
-    model_name = "SRL_BERT_gated_transform_red100_100_norm_L2"
+    model_name = "SRL_BERT_C_gated_transform_redboth100_100_norm_L2"
     with open(f"models/{model_name}.json", "r") as f:
         config = json.load(f)
 
