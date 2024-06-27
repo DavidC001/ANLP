@@ -369,11 +369,15 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
     
 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
-        epochs: int=100, init_lr: float=0.001, scheduler_step: int=5, scheduler_gamma: float=0.9, l2_lambda: float=1e-5,
+        epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5,
         device: torch.device="cuda", name: str="SRL"):
     tensorboard = SummaryWriter(log_dir=f'runs/{name}')
-    optimizer = optim.AdamW(model.parameters(), lr=init_lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step, gamma=scheduler_gamma)
+
+    optimizer = optim.AdamW([
+            {'params': model.bert.parameters(), 'lr': lr_encoder},
+            {'params': [p[1] for p in model.named_parameters() if 'bert' not in p[0]], 'lr': init_lr}
+        ], lr=init_lr, weight_decay=0)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.00001)
 
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model, train_loader, optimizer, l2_lambda, device)
@@ -384,7 +388,8 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
         print()
         print_and_log_results(val_result, tensorboard, epoch, "Val")
 
-        tensorboard.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], epoch)
+        tensorboard.add_scalar('Learning Rate encoder', optimizer.param_groups[0]['lr'], epoch)
+        tensorboard.add_scalar('Learning Rate model', optimizer.param_groups[1]['lr'], epoch)
 
         scheduler.step()
 
