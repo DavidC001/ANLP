@@ -2,18 +2,6 @@
 
 This repository contains code and scripts for performing Semantic Role Labeling (SRL) using BERT architecture. It includes data preprocessing, model training, and evaluation functionalities.
 
-## Table of Contents
-
-- [Directory Structure](#directory-structure)
-- [Setup and Installation](#setup-and-installation)
-- [Data Preprocessing](#data-preprocessing)
-- [Model Architecture](#model-architecture)
-- [Training the Model](#training-the-model)
-- [Evaluation Metrics](#evaluation-metrics)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
-
 ## Directory Structure
 
 ```
@@ -51,18 +39,12 @@ This repository contains code and scripts for performing Semantic Role Labeling 
     cd srl-bert
     ```
 
-2. **Create a virtual environment**:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    ```
-
-3. **Install dependencies**:
+2. **Install dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
 
-## Data Preprocessing
+### Data pre-preprocessing
 
 Before training the model, you need to preprocess the data. The `dataloaders` directory contains scripts for preprocessing different datasets:
 
