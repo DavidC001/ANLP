@@ -25,9 +25,9 @@ def print_results(relational_logits, senses_logits, results, text):
     # print("Senses logits:")
     # print(senses_logits)
 
-    relation_positions = [i for i in range(len(relational_logits)) if nn.Sigmoid()(relational_logits[i]) > 0.9]
+    relation_positions = [i for i in range(len(relational_logits)) if nn.Sigmoid()(relational_logits[i]) > 0.75]
 
-    print("Role logits:")
+    print("Role logits:")   
     for i, phrase_role_logits in enumerate(results):
         for j, relation_role_logits in enumerate(phrase_role_logits):
             print(f"\tRelation {j} - Word: {text[relation_positions[j]]}")
