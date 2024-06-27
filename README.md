@@ -1,6 +1,10 @@
-# ANLP
+# ANLP - SRL
+<img src="https://github.com/DavidC001/ANLP/assets/40665241/6228ccbb-da4c-4662-84ce-6216dc5cf5b8" align="left" width="20%" style="margin-right: 15px; margin-bottom: 10px;" />
 
-This repository contains code and scripts for performing Semantic Role Labeling (SRL) using BERT architecture. It includes data preprocessing, model training, and evaluation functionalities.
+This project is part of the master course "Applied Natural Language Processing" by Davide Cavicchini. The goal is to develop an SRL system using a transformer encoder model. This repository includes data preprocessing, model training, and inference functionalities.
+
+<br clear="left"/>
+
 
 ## Directory Structure
 
