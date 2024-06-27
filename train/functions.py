@@ -112,9 +112,11 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
     sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
     rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
 
-    weight_rel /= rel_f1
+    if rel_f1 > 0.9:
+        weight_rel /= rel_f1
     # weight_sense /= sense_f1
-    weight_role /= role_f1
+    if role_f1 > 0:
+        weight_role /= role_f1
     # print(f"Rel Loss: {rel_loss:.4f}, Role Loss: {rol_loss:.4f}")
     total_loss = weight_rel * rel_loss + weight_role * rol_loss # + weight_sense * sense_loss
     # should help avoid having classes always be predicted, do not count the parameters of model.bert
