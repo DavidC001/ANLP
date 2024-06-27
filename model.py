@@ -110,7 +110,7 @@ class SRL_BERT(nn.Module):
             self.role_classifier = nn.Sequential(*self.role_layers)
         else:
             if len(role_layers) > 0:
-                print("Warning: role_layers will be ignored when using an LSTM for role classification")
+                print("Warning: role_layers values will be ignored when using an LSTM for the role classifier")
             # hoping to make them more stable
             self.role_classifier = nn.LSTM(role_classifer_input_size, role_classes, len(role_layers), batch_first=True)
 
