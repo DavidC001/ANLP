@@ -134,7 +134,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
          role_logits: torch.Tensor, role_labels: torch.Tensor,
          model: nn.Module, l2_lambda: float=0.001,
-         weight_rel: float=1, weight_sense: float=1, weight_role: float=1,
+         weight_rel: float=1, weight_sense: float=1, weight_role: float=1, F1_loss_power: float=2
          ):
     """
         Compute the total loss for the model
@@ -164,10 +164,10 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
     rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
 
     if rel_f1 > 0.9:
-        weight_rel /= rel_f1**2
+        weight_rel /= rel_f1**F1_loss_power
     # weight_sense /= sense_f1
     if role_f1 > 0:
-        weight_role /= role_f1**2
+        weight_role /= role_f1**F1_loss_power
     # print(f"Rel Loss: {rel_loss:.4f}, Role Loss: {rol_loss:.4f}")
     total_loss = weight_rel * rel_loss + weight_role * rol_loss # + weight_sense * sense_loss
     # should help avoid having classes always be predicted, do not count the parameters of model.bert
@@ -190,7 +190,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
 
 
 
-def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, device: torch.device):
+def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, F1_loss_power: float, device: torch.device):
     """
         Perform a training step
 
@@ -255,7 +255,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
                          senses_logits, senses_labels, 
                          role_results, role_labels,
                          model, l2_lambda=l2_lambda,
-                         weight_rel=1, weight_sense=1, weight_role=1)
+                         weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
 
         loss_dict['loss'].backward()
         optimizer.step()
@@ -313,7 +313,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         "role_accuracy": role_accuracy, "role_precision": role_precision, "role_recall": role_recall, "role_f1": role_f1
     }
 
-def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, device: torch.device):
+def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_loss_power: float, device: torch.device):
     """
         Perform an evaluation step
 
@@ -369,7 +369,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, device
                              senses_logits, senses_labels, 
                              role_results, role_labels,
                              model, l2_lambda=l2_lambda,
-                             weight_rel=1, weight_sense=1, weight_role=1)
+                             weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
 
             total_loss += loss_dict['loss'].item()
 
@@ -462,7 +462,7 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
     
 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
-        epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5,
+        epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5, F1_loss_power: float=2,
         device: torch.device="cuda", name: str="SRL"):
     """
         Train the model
@@ -489,8 +489,8 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
 
     for epoch in tqdm(range(epochs)):
-        train_result = train_step(model, train_loader, optimizer, l2_lambda, device)
-        val_result = eval_step(model, val_loader, l2_lambda, device)
+        train_result = train_step(model, train_loader, optimizer, l2_lambda, F1_loss_power, device)
+        val_result = eval_step(model, val_loader, l2_lambda, F1_loss_power, device)
 
         print()
         print_and_log_results(train_result, tensorboard, epoch, "Train")
