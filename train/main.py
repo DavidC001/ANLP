@@ -10,27 +10,16 @@ torch.manual_seed(0)
 
 def train_SRL():
     tests = {
-        "SRL_BERT_gated_redboth100_100_norm_cosineLR_weightedLoss": {
-            "model_name": "bert-base-uncased",
+        "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss2": {
+            "model_name": "distilbert/distilbert-base-uncased",
             "combine_method": "gating",
             "role_layers": [100],
             "norm_layer": True,
-            "role_LSTM": False,
             "dim_reduction": 100,
             "relation_reduction": True,
             "train_encoder": True
         },
-        "SRL_BERT_gated_redboth100_lstm2_norm_cosineLR_weightedLoss": {
-            "model_name": "bert-base-uncased",
-            "combine_method": "gating",
-            "role_layers": [1,2],
-            "norm_layer": True,
-            "role_LSTM": True,
-            "dim_reduction": 100,
-            "relation_reduction": True,
-            "train_encoder": True
-        },
-        "SRL_XML_ROBERTA_CONLL_gated_redboth100_100_norm_cosineLR_weightedLoss": {
+        "SRL_XML_ROBERTA_CONLL_gated_redboth100_100_norm_cosineLR_weightedLoss2": {
             "model_name": "FacebookAI/xlm-roberta-large-finetuned-conll03-english",
             "combine_method": "gating",
             "role_layers": [100],
