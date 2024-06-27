@@ -5,7 +5,9 @@ import sys
 sys.path.append('.')
 
 from model import SRL_MODEL
-from dataloaders.UP_dataloader import roles
+from dataloaders.UP_dataloader import roles as UP_roles
+from dataloaders.NomBank_dataloader import roles as NOM_roles
+roles = []
 
 
 def print_results(relational_logits, senses_logits, results, text):
@@ -65,6 +67,14 @@ if __name__ == '__main__':
     model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{name}.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
+
+    if(config["role_classes"] == len(UP_roles)-2):
+        roles = UP_roles
+    elif(config["role_classes"] == len(NOM_roles)-2):
+        roles = NOM_roles
+    else:
+        print("Error: roles not found")
+        exit()
 
     #print number of parameters in model excluding bert
     print(f"Number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")

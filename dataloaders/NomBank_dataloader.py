@@ -11,12 +11,10 @@ sys.path.append('.')
 # BERT fast TOKENIZER
 from transformers import AutoTokenizer
 
-roles = ['rel', 'None', 'ARG1', 'ARG0', 'ARG1-REF', 'ARG2', 
-         'ARG2-REF', 'ARGM-TMP', 'Support', 'ARGM-MNR', 'ARGM-LOC', 
-         'ARG3', 'ARGM-PNC', 'ARG2-PRD', 'ARGM-EXT', 'ARG1-PRD', 'ARGM-NEG', 
-         'ARG0-PRD', 'ARG4', 'ARG0-REF', 'ARG8', 'ARGM-ADV', 'ARG3-REF', 'ARG9', 
-         'ARGM-DIR', 'ARGM-DIS', 'ARG0-MNR', 'ARG5', 'ARG3-PRD', 'ARGM-CAU', 
-         'ARGM-PRD', 'ARG4-REF', 'ARG1-MNR', 'Support-MNR', 'Support-LOC', 'ARG4-PRD', 'ARG2-NEG']
+roles = ['rel', 'None', 'ARG1', 'ARG0', 'ARG2', 'ARGM-TMP', 
+         'Support', 'ARGM-MNR', 'ARGM-LOC', 'ARG3', 'ARGM-PNC', 
+         'ARGM-EXT', 'ARGM-NEG', 'ARG4', 'ARG8', 'ARGM-ADV', 'ARG9', 
+         'ARGM-DIR', 'ARGM-DIS', 'ARG5', 'ARGM-CAU', 'ARGM-PRD']
 
 class NOM_Dataset(Dataset):
     def __init__(self, file_path, tokenizer_name):
@@ -78,12 +76,19 @@ class NOM_Dataset(Dataset):
                     continue
 
                 spans = label[0].replace('\n', '')
+                span_text = spans
                 #split when there is a * or , in the span
                 spans = spans.split('*')
                 spans = [span.split(',') for span in spans]
                 spans = [item for sublist in spans for item in sublist]
 
-                label = '-'.join(label[1:]).replace('\n', '')
+                label = '-'.join(label[1:]).replace('\n', '').replace('-REF', '')
+                if "-" in label and not label.startswith("ARGM"):
+                    #split into multiple labels
+                    label = label.split('-')
+                    for l in label[1:]:
+                        SRL.append(f"{span_text}-ARGM-{l}")
+                    label = label[0]
 
                 added_rel = False
                 for span in spans:

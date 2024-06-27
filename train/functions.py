@@ -425,7 +425,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_los
     }
 
 
-def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, tag: str):
+def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, tag: str, dataset: str="UP"):
     """
         Print and log the results to tensorboard
 
@@ -435,6 +435,9 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
             epoch: The epoch
             tag: The tag to use (Train, Val, Test)
     """
+    if dataset != "UP":
+        tag=f"{dataset}/{tag}"
+
     print(f"\n\t{tag} Loss: {result['loss']:.4f}")
     print(f"\t{tag} Rel Loss: {result['rel_loss']:.4f}, accuracy: {result['rel_accuracy']:.4f}, precision: {result['rel_precision']:.4f}, recall: {result['rel_recall']:.4f}, f1: {result['rel_f1']:.4f}")
     # print(f"\t{tag} Sense Loss: {result['sense_loss']:.4f}, accuracy: {result['sense_accuracy']:.4f}, precision: {result['sense_precision']:.4f}, recall: {result['sense_recall']:.4f}, f1: {result['sense_f1']:.4f}")
@@ -463,7 +466,7 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
         epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5, F1_loss_power: float=2,
-        device: torch.device="cuda", name: str="SRL"):
+        device: torch.device="cuda", name: str="SRL", dataset: str="UP"):
     """
         Train the model
 
@@ -493,9 +496,9 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
         val_result = eval_step(model, val_loader, l2_lambda, F1_loss_power, device)
 
         print()
-        print_and_log_results(train_result, tensorboard, epoch, "Train")
+        print_and_log_results(train_result, tensorboard, epoch, "Train", dataset)
         print()
-        print_and_log_results(val_result, tensorboard, epoch, "Val")
+        print_and_log_results(val_result, tensorboard, epoch, "Val", dataset)
 
         tensorboard.add_scalar('Learning Rate/encoder', optimizer.param_groups[0]['lr'], epoch)
         tensorboard.add_scalar('Learning Rate/other', optimizer.param_groups[1]['lr'], epoch)
@@ -505,8 +508,8 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
     final_result = eval_step(model, train_loader, l2_lambda=l2_lambda, device=device)
     final_val_result = eval_step(model, val_loader, l2_lambda=l2_lambda, device=device)
     test_result = eval_step(model, test_loader, l2_lambda=l2_lambda, device=device)
-    print_and_log_results(final_result, tensorboard, epochs, "Train")
-    print_and_log_results(final_val_result, tensorboard, epochs, "Val")
-    print_and_log_results(test_result, tensorboard, epochs, "Test")
+    print_and_log_results(final_result, tensorboard, epochs, "Train", dataset)
+    print_and_log_results(final_val_result, tensorboard, epochs, "Val", dataset)
+    print_and_log_results(test_result, tensorboard, epochs, "Test", dataset)
 
     tensorboard.close()

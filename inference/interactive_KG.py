@@ -12,8 +12,11 @@ from langchain_community.graphs import Neo4jGraph
 from tqdm import tqdm
 
 sys.path.append('.')
-from dataloaders.UP_dataloader import roles 
+from dataloaders.UP_dataloader import roles as UP_roles
+from dataloaders.NomBank_dataloader import roles as NOM_roles
 from model import SRL_MODEL
+
+roles = []
 
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
@@ -311,7 +314,11 @@ if __name__ == '__main__':
         password=password
     )
 
+    dataset = input("Enter the role format (UP/NOM): ")
+    roles = UP_roles if dataset == "UP" else NOM_roles
+
     mode = input("Do you want to compute the graph from a Wikipedia article or from a text file? (w/f) or only show the graph? (s): ")
+
 
     if mode == "w" or mode == "f":
         compute_graph(graph, mode)

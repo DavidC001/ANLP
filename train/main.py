@@ -10,16 +10,7 @@ torch.manual_seed(0)
 
 def train_SRL():
     tests = {
-        "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss2": {
-            "model_name": "distilbert/distilbert-base-uncased",
-            "combine_method": "gating",
-            "role_layers": [100],
-            "norm_layer": True,
-            "dim_reduction": 100,
-            "relation_reduction": True,
-            "train_encoder": True
-        },
-        "SRL_XML_ROBERTA_CONLL_gated_redboth100_100_norm_cosineLR_weightedLoss2": {
+        "SRL_NOM_XML_ROBERTA_CONLL_gated_redboth100_100_norm_cosineLR_weightedLoss": {
             "model_name": "FacebookAI/xlm-roberta-large-finetuned-conll03-english",
             "combine_method": "gating",
             "role_layers": [100],
@@ -30,9 +21,15 @@ def train_SRL():
         },
     }
 
+    dataset = "NOM"
+
     for test in tests:
         batch_size = 32 if ("large" in tests[test]["model_name"] and tests[test]["train_encoder"]) else 64
-        train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders("datasets/preprocessed/", batch_size=batch_size, shuffle=True, model_name=tests[test]["model_name"])
+        train_loader, val_loader, test_loader, num_senses, num_roles = get_dataloaders(
+            "datasets/preprocessed/", 
+            batch_size=batch_size, shuffle=True, 
+            model_name=tests[test]["model_name"],
+            dataset=dataset
         print(f"\nTraining model {test}")
         tests[test]["sense_classes"] = num_senses
         tests[test]["role_classes"] = num_roles
@@ -41,8 +38,8 @@ def train_SRL():
         print(f"Number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
         train(model, train_loader, val_loader, test_loader,
-            epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=2,
-            device='cuda', name=test)
+            epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=1,
+            device='cuda', name=test, dataset=dataset)
         
         # Save the model
         torch.save(model.state_dict(), f"models/{test}.pt")

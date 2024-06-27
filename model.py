@@ -7,7 +7,6 @@ import math
 
 
 from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
-from dataloaders.UP_dataloader import roles
 
 class GatedCombination(nn.Module):
     """

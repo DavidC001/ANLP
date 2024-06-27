@@ -1,10 +1,15 @@
 import sys
 sys.path.append('.')
-from dataloaders.UP_dataloader import UP_Dataset, roles
+from dataloaders.UP_dataloader import UP_Dataset
+from dataloaders.UP_dataloader import roles as UP_roles
+from dataloaders.NomBank_dataloader import NOM_Dataset
+from dataloaders.NomBank_dataloader import roles as NOM_roles
+
 from torch.utils.data import DataLoader
 import torch
 
 senses = []
+roles = []
 
 def collate_fn(batch):
     """
@@ -16,7 +21,7 @@ def collate_fn(batch):
         Returns:
             A dictionary containing the input_ids, attention_masks, word_ids, relation_position, relation_label_mask, relation_label, senses, senses_labels, and role_labels
     """
-    global senses
+    global senses, roles
     # breakpoint()
     max_len = max(len(item['tokenized_text']) for item in batch)
     
@@ -100,7 +105,7 @@ def collate_fn(batch):
     }
     
 
-def get_dataloaders(root, batch_size=32, shuffle=True, model_name="bert-base-uncased"):
+def get_dataloaders(root, batch_size=32, shuffle=True, model_name="bert-base-uncased", dataset="UP"):
     """
         Returns the dataloaders for the Universal Propositions dataset
 
@@ -117,16 +122,31 @@ def get_dataloaders(root, batch_size=32, shuffle=True, model_name="bert-base-unc
             num_senses: The number of senses in the dataset
             num_roles: The number of roles in the dataset
     """
-    train_dataset = UP_Dataset(root + "en_ewt-up-train.tsv", model_name)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
+    global senses, roles
+    
+    if dataset == "UP":
+        train_dataset = UP_Dataset(root + "en_ewt-up-train.tsv", model_name)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
-    dev_dataset = UP_Dataset(root + "en_ewt-up-dev.tsv", model_name)
-    dev_loader = DataLoader(dev_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
+        dev_dataset = UP_Dataset(root + "en_ewt-up-dev.tsv", model_name)
+        dev_loader = DataLoader(dev_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
-    test_dataset = UP_Dataset(root + "en_ewt-up-test.tsv", model_name)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
+        test_dataset = UP_Dataset(root + "en_ewt-up-test.tsv", model_name)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
-    global senses
+        roles = UP_roles
+    elif dataset == "NOM":
+        train_dataset = NOM_Dataset(root + "train.srl", model_name)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
+
+        dev_dataset = NOM_Dataset(root + "development.srl", model_name)
+        dev_loader = DataLoader(dev_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
+
+        test_dataset = NOM_Dataset(root + "test.srl", model_name)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
+
+        roles = NOM_roles
+
     senses = train_dataset.senses 
     num_senses = len(senses)
     num_roles = len(roles) - 2
