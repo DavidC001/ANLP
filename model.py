@@ -27,7 +27,7 @@ class GatedCombination(nn.Module):
         
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
-class SRL_BERT(nn.Module):
+class SRL_MODEL(nn.Module):
     def __init__(self, model_name, sense_classes, role_classes, 
                  combine_method='mean', norm_layer=False,
                  dim_reduction=0, relation_reduction=False,
@@ -50,7 +50,7 @@ class SRL_BERT(nn.Module):
                 device (str): the device to use for the model
         
         '''
-        super(SRL_BERT, self).__init__()
+        super(SRL_MODEL, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
 
         if not train_encoder:
@@ -309,7 +309,7 @@ if __name__ == '__main__':
     with open(f"models/{name}.json", "r") as f:
         config = json.load(f)
     
-    model = SRL_BERT(**config)
+    model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{name}.pt"))
     text = "Fausto eats polenta at the beach while sipping beer."
 

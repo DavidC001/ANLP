@@ -1,6 +1,6 @@
 import sys
 sys.path.append('.')
-from model import SRL_BERT
+from model import SRL_MODEL
 from utils import get_dataloaders
 from functions import train
 import torch
@@ -48,7 +48,7 @@ def train_SRL():
         tests[test]["sense_classes"] = num_senses
         tests[test]["role_classes"] = num_roles
 
-        model = SRL_BERT(**tests[test])
+        model = SRL_MODEL(**tests[test])
         print(f"Number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
         train(model, train_loader, val_loader, test_loader,

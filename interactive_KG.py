@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 sys.path.append('.')
 from dataloaders.UP_dataloader import roles 
-from model import SRL_BERT, print_results
+from model import SRL_MODEL, print_results
 
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
@@ -158,11 +158,11 @@ def compute_graph(graph, mode):
             article_content = f.read()
 
     # Initialize the model
-    model_name = "SRL_BERT_C_gated_transform_redboth100_100_norm_L2"
+    model_name = input("Enter the name of the model to use: ")
     with open(f"models/{model_name}.json", "r") as f:
         config = json.load(f)
 
-    model = SRL_BERT(**config)
+    model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{model_name}.pt"))
 
     # Split the article into sentences

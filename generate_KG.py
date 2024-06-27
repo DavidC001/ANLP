@@ -7,7 +7,7 @@ import wikipedia
 import re
 sys.path.append('.')
 from dataloaders.UP_dataloader import roles 
-from model import SRL_BERT, print_results
+from model import SRL_MODEL, print_results
 import matplotlib.pyplot as plt
 import networkx as nx
 from langchain_community.graphs import Neo4jGraph
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     with open(f"models/{model_name}.json", "r") as f:
         config = json.load(f)
 
-    model = SRL_BERT(**config)
+    model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{model_name}.pt"))
 
     # Split the article into sentences
