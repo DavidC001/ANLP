@@ -30,6 +30,7 @@ def train_SRL():
             batch_size=batch_size, shuffle=True, 
             model_name=tests[test]["model_name"],
             dataset=dataset
+        )
         print(f"\nTraining model {test}")
         tests[test]["sense_classes"] = num_senses
         tests[test]["role_classes"] = num_roles
