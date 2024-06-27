@@ -10,7 +10,17 @@ from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenize
 from dataloaders.UP_dataloader import roles
 
 class GatedCombination(nn.Module):
+    """
+        Combines the hidden states of the words and the relations using a gating mechanism
+    """
     def __init__(self, hidden_size, transform=False):
+        """
+            Initialize the module
+
+            Parameters:
+                hidden_size (int): the size of the hidden states
+                transform (bool): false combines directly, true applies a transformation before combining with the second state
+        """
         super(GatedCombination, self).__init__()
         self.gate = nn.Linear(2 * hidden_size, hidden_size)
         self.transform = transform
@@ -38,7 +48,7 @@ class SRL_MODEL(nn.Module):
 
             Parameters:
                 model_name (str): the name of the pretrained encoder model to use
-                sense_classes (int): the number of classes for the senses classifier
+                sense_classes (int): the number of classes for the senses classifier (not used in current implementation)
                 role_classes (int): the number of classes for the role classifier
                 combine_method (str): the method to combine the hidden states of the words and relations, can be 'mean', 'concatenation', 'gating' or 'gating_transform'
                 norm_layer (bool): whether to use a normalization layer after the combination
@@ -53,13 +63,15 @@ class SRL_MODEL(nn.Module):
         super(SRL_MODEL, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
 
+        # Freeze the encoder if needed
         if not train_encoder:
             for param in self.bert.parameters():
                 param.requires_grad = False
         
         self.combine_method = combine_method  # 'mean', 'concatenation', 'gating'
         hidden_size = self.bert.config.hidden_size
-
+        role_size = hidden_size
+        
         # senses_layers = [(self.bert.config.hidden_size, math.ceil(sense_classes/4)), 
         #                  (math.ceil(sense_classes/4), math.ceil(sense_classes/2)),
         #                  (math.floor(sense_classes/2), sense_classes)]
@@ -70,23 +82,23 @@ class SRL_MODEL(nn.Module):
         #         self.senses_classifier_layers.append(nn.ReLU())
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
-        role_size = hidden_size
+        # Initialize the modules for the dimensionality reduction if needed
         self.dim_reduction = (dim_reduction > 0)
         if self.dim_reduction:
             role_size = dim_reduction
             self.rel_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
             self.word_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
 
+        # Initialize the module for the relational classifier
         self.rel_class_reduction = relation_reduction
         if self.rel_class_reduction:
             self.relational_classifier = nn.Linear(dim_reduction, 1)
         else:
             self.relational_classifier = nn.Linear(hidden_size, 1)
 
-        if combine_method == 'gating_transform':
-            self.combiner = GatedCombination(role_size, transform=True)
-        elif combine_method == 'gating':
-            self.combiner = GatedCombination(role_size, transform=False)
+        # Initialize the module to combine the hidden states
+        if combine_method.startswith('gating'):
+            self.combiner = GatedCombination(role_size, transform=(combine_method == 'gating_transform'))
 
         # Configure input size based on combination method
         if combine_method == 'concatenation':
@@ -94,11 +106,13 @@ class SRL_MODEL(nn.Module):
         else: 
             role_classifer_input_size = role_size
 
+        # Set up the normalization layer
         self.norm = norm_layer
         if norm_layer:
             # Instantiate a LayerNorm layer
             self.norm_layer = nn.LayerNorm(role_classifer_input_size)
 
+        # Initialize the module for the role classifier
         self.role_LSTM = role_LSTM
         if not role_LSTM:
             role_layers = [role_classifer_input_size] + role_layers + [role_classes]
@@ -114,19 +128,33 @@ class SRL_MODEL(nn.Module):
             # hoping to make them more stable
             self.role_classifier = nn.LSTM(role_classifer_input_size, role_classes, len(role_layers), batch_first=True)
 
+        # Initialize the tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
+        # Move the model to the device
         self.to(device)
         self.device = device
 
         # self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     def rel_compute(self, hidden_states, word_ids):
+        """
+            Compute the logits for the relational classifier
+
+            Parameters:
+                hidden_states (torch.Tensor): the hidden states of the encoder
+                word_ids (list): the ids of the words in the sentence
+
+            Returns:
+                relational_logits (torch.Tensor): the logits for the relational classifier
+        """
+        # Apply the reduction if needed
         if self.rel_class_reduction and self.dim_reduction>0:
             hidden_states = self.rel_reduction(hidden_states)
             
         batch_size, seq_len, hidden_size = hidden_states.size()
 
+        # Extract the first hidden state for each word
         first_hidden_states = torch.zeros((batch_size, max(word_ids)+1, hidden_size)).to(hidden_states.device)
         seen_words = set()
         for j, word_id in enumerate(word_ids):
@@ -134,10 +162,21 @@ class SRL_MODEL(nn.Module):
                 first_hidden_states[0, word_id] = hidden_states[0, j]
                 seen_words.add(word_id)
 
+        # Compute the logits
         relational_logits = self.relational_classifier(first_hidden_states).squeeze(-1)
         return relational_logits
 
     def sense_compute(self, hidden_states, relations_positions):
+        """
+            Compute the logits for the senses classifier
+
+            Parameters:
+                hidden_states (torch.Tensor): the hidden states of the encoder
+                relations_positions (list): the positions of the relations in the hidden states
+
+            Returns:
+                senses_logits (torch.Tensor): the logits for the senses classifier
+        """
         phrase_indices = [[i]*len(pos) for i, pos in enumerate(relations_positions)]
         phrase_indices = [i for sublist in phrase_indices for i in sublist]
         relations_indices = [pos for positions in relations_positions for pos in positions]
@@ -146,10 +185,21 @@ class SRL_MODEL(nn.Module):
         return senses_logits
     
     def role_compute(self, hidden_states, relations_positions, word_ids):
+        """
+            Compute the logits for the role classifier
+
+            Parameters:
+                hidden_states (torch.Tensor): the hidden states of the encoder
+                relations_positions (list): the positions of the relations in the hidden states
+                word_ids (list): the ids of the words in the sentence
+
+            Returns:
+                results (list): the logits for the role classifier
+        """
         batch_size, seq_len, hidden_size = hidden_states.size()
+
         # Extract the first hidden state for each word
         first_hidden_states = torch.zeros((batch_size, max([max(words_id) for words_id in word_ids])+1, hidden_size)).to(hidden_states.device)
-        
         prev_word_id = -1
         for i in range(batch_size):
             for j, word_id in enumerate(word_ids[i]):
@@ -160,17 +210,19 @@ class SRL_MODEL(nn.Module):
 
         # Combine the hidden states
         results = []
-        # breakpoint()
         for i in range(batch_size):
             relation_hidden_states = []
             for pos in relations_positions[i]:
                 if pos is not None and pos < seq_len:
+                    # get the hidden state of the relation and apply the reduction if needed
                     relation_hidden_state = hidden_states[i, pos]
                     relation_hidden_state = self.rel_reduction(relation_hidden_state) if self.dim_reduction>0 else relation_hidden_state
                     
+                    # get the hidden states of the words and apply the reduction if needed
                     word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
                     word_hidden_states = self.word_reduction(word_hidden_states) if self.dim_reduction>0 else word_hidden_states
 
+                    # Combine the hidden states based on the method
                     if(self.combine_method == 'mean'):
                         # mean between the two states
                         combined_states = (word_hidden_states + relation_hidden_state) / 2
@@ -179,10 +231,9 @@ class SRL_MODEL(nn.Module):
                     elif(self.combine_method == 'gating' or self.combine_method == 'gating_transform'):
                         combined_states = self.combiner(relation_hidden_state, word_hidden_states)
                     
-                    # breakpoint()
-                    
                     relation_hidden_states.append(combined_states)
 
+            # Compute the logits for the role classifier
             if relation_hidden_states:
                 relation_hidden_states = torch.stack(relation_hidden_states)
                 relation_hidden_states = self.norm_layer(relation_hidden_states) if self.norm else relation_hidden_states
@@ -219,6 +270,17 @@ class SRL_MODEL(nn.Module):
         return relational_logits, senses_logits, results
     
     def inference(self,text):
+        """
+            Perform inference on a text
+
+            Parameters:
+                text (str): the text to perform inference on
+
+            Returns:
+                relational_logits (torch.Tensor): the logits for the relational classifier
+                senses_logits (torch.Tensor): the logits for the senses classifier
+                results (list): the logits for the role classifier
+        """
         self.eval()
 
         # tokenize the text as in the training (TreebankWordTokenizer)

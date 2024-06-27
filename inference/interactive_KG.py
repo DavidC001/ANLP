@@ -18,7 +18,19 @@ from model import SRL_MODEL
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
 
-def get_spans(text, role_logits, threshold=0.6, mode="top"):
+def get_spans(text, role_logits, threshold=0.6, mode="t"):
+    """
+        Get the spans of the roles from the logits
+
+        Parameters:
+            text: The text of the sentence
+            role_logits: The logits of the roles
+            threshold: The threshold for the probability
+            mode: The mode to use for the spans (t for taking the most probable, a for aggregating all)
+
+        Returns:
+            The spans of the roles
+    """
     role_spans = {}
 
     for idx, logits in enumerate(role_logits):
@@ -61,6 +73,17 @@ def get_spans(text, role_logits, threshold=0.6, mode="top"):
     return final_spans
 
 def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0, aggregate_spans="t"):
+    """
+        Populate the knowledge graph with the results of the inference
+
+        Parameters:
+            relational_logits: The logits of the relations
+            results: The logits of the roles
+            text: The text of the sentence
+            graph: The Neo4jGraph object
+            sent_id: The ID of the sentence
+            aggregate_spans: The mode to use for the spans (t for taking the most probable, a for aggregating all)
+    """
     tokenizer = TreebankWordTokenizer()
     text_tokens = tokenizer.tokenize(text)
 
@@ -97,6 +120,16 @@ def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0,
             """)
 
 def fetch_graph_data(graph):
+    """
+        Fetch the graph data from Neo4j
+
+        Parameters:
+            graph: The Neo4jGraph object
+
+        Returns:
+            The NetworkX graph
+    """
+
     # Fetch nodes and relationships from Neo4j
     query_nodes = "MATCH (n) RETURN n"
     query_rels = "MATCH (n)-[r]->(m) RETURN n, type(r) as rel_type, m"
@@ -127,6 +160,15 @@ def fetch_graph_data(graph):
     return G
 
 def create_cytoscape_elements(G):
+    """
+        Create the elements for the Cytoscape component
+
+        Parameters:
+            G: The NetworkX graph
+
+        Returns:
+            The elements for the Cytoscape component
+    """
     elements = []
 
     for node in G.nodes(data=True):
@@ -145,6 +187,12 @@ def clean_database(graph):
     graph.query("MATCH (n) DETACH DELETE n")
 
 def fetch_wikipedia_article(title):
+    """
+        Fetch a Wikipedia article
+
+        Parameters:
+            title: The title of the article
+    """
     try:
         page = wikipedia.page(title)
         return page.content
@@ -153,6 +201,14 @@ def fetch_wikipedia_article(title):
         return None
 
 def compute_graph(graph, mode):
+    """
+        Compute the knowledge graph from the selected input mode
+
+        Parameters:
+            graph: The Neo4jGraph object
+            mode: The mode to use for the input (w for Wikipedia, f for file)
+    """
+
     # Clean the database before populating
     reset_database = input("Do you want to reset the database? (y/n): ")
     if reset_database == "y":
@@ -200,6 +256,13 @@ def compute_graph(graph, mode):
         i += 1
 
 def serve_KG(graph):
+    """
+        Serve the knowledge graph visualization using Dash
+
+        Parameters:
+            graph: The Neo4jGraph object
+    """
+
     G = fetch_graph_data(graph)
     elements = create_cytoscape_elements(G)
 
@@ -241,7 +304,7 @@ if __name__ == '__main__':
     # Initialize the Neo4j connection
     url = "neo4j+s://70b9b6b6.databases.neo4j.io"
     username = "neo4j"
-    password = "4euztjZ-dqQH2HwstTtkxsmznyjfvoHugK2puR3he78"
+    password = ""
     graph = Neo4jGraph(
         url=url,
         username=username,

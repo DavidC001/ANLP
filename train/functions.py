@@ -8,6 +8,17 @@ from tqdm import tqdm
 
 
 def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor):
+    """
+        Compute loss for relational classification
+
+        Parameters:
+            mask: The mask for the labels
+            logits: The logits from the model
+            labels: The labels for the relations
+
+        Returns:
+            The loss, accuracy, precision, recall, and f1 score for the relation classification
+    """
     # Compute loss for relational classification
     logits = logits * mask
 
@@ -31,6 +42,16 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
     return relational_loss, rel_accuracy, rel_precision, rel_recall, rel_f1
 
 def senses_loss(logits: torch.Tensor, labels: torch.Tensor):
+    """
+        Compute loss for sense classification
+
+        Parameters:
+            logits: The logits from the model
+            labels: The labels for the senses
+
+        Returns:
+            The loss, accuracy, precision, recall, and f1 score for the sense classification
+    """
     # Compute loss for sense classification
     
     criterion = nn.CrossEntropyLoss(reduction='mean')
@@ -50,6 +71,16 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor):
     return loss, sense_acc, sense_precision, sense_recall, sense_f1
 
 def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
+    """
+        Compute loss for role classification
+
+        Parameters:
+            results: The logits from the model
+            labels: The labels for the roles
+
+        Returns:
+            The loss, accuracy, precision, recall, and f1 score for the role classification
+    """
     # Compute loss for role classification
     role_loss = 0
     all_role_preds = []
@@ -105,6 +136,26 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
          model: nn.Module, l2_lambda: float=0.001,
          weight_rel: float=1, weight_sense: float=1, weight_role: float=1,
          ):
+    """
+        Compute the total loss for the model
+
+        Parameters:
+            rel_mask: The mask for the relation labels
+            rel_logits: The logits for the relation classification
+            rel_labels: The labels for the relation classification
+            sense_logits: The logits for the sense classification
+            sense_labels: The labels for the sense classification
+            role_logits: The logits for the role classification
+            role_labels: The labels for the role classification
+            model: The model
+            l2_lambda: The lambda for the L2 regularization
+            weight_rel: The weight for the relation classification
+            weight_sense: The weight for the sense classification
+            weight_role: The weight for the role classification
+
+        Returns:
+            A dictionary containing the total loss, relation loss, sense loss, role loss, relation accuracy, relation precision, relation recall, relation f1, sense accuracy, sense precision, sense recall, sense f1, role accuracy, role precision, role recall, and role f1
+    """
     
     # Compute loss for each task
     rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels)
@@ -140,7 +191,21 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
 
 
 def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, device: torch.device):
+    """
+        Perform a training step
 
+        Parameters:
+            model: The model
+            train_loader: The training data loader
+            optimizer: The optimizer
+            l2_lambda: The lambda for the L2 regularization
+            device: The device to use
+
+        Returns:
+            A dictionary containing the total loss, relation loss, sense loss, role loss, relation accuracy, relation precision, relation recall, relation f1, sense accuracy, sense precision, sense recall, sense f1, role accuracy, role precision, role recall, and role f1
+    """
+
+    # Set the model to training mode
     model.train()
 
     total_loss = 0
@@ -182,8 +247,10 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
 
         # breakpoint()
 
+        # get the logits from the model
         relational_logits, senses_logits, role_results = model(input_ids, attention_masks, relations, word_ids)
 
+        # compute the loss
         loss_dict = loss(relation_label_masks, relational_logits, relation_labels, 
                          senses_logits, senses_labels, 
                          role_results, role_labels,
@@ -247,6 +314,18 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
     }
 
 def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, device: torch.device):
+    """
+        Perform an evaluation step
+
+        Parameters:
+            model: The model
+            val_loader: The validation data loader
+            l2_lambda: The lambda for the L2 regularization
+            device: The device to use
+
+        Returns:
+            A dictionary containing the total loss, relation loss, sense loss, role loss, relation accuracy, relation precision, relation recall, relation f1, sense accuracy, sense precision, sense recall, sense f1, role accuracy, role precision, role recall, and role f1
+    """
     model.eval()
 
     total_loss = 0
@@ -347,6 +426,15 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, device
 
 
 def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, tag: str):
+    """
+        Print and log the results to tensorboard
+
+        Parameters:
+            result: The results
+            tensorboard: The tensorboard writer
+            epoch: The epoch
+            tag: The tag to use (Train, Val, Test)
+    """
     print(f"\n\t{tag} Loss: {result['loss']:.4f}")
     print(f"\t{tag} Rel Loss: {result['rel_loss']:.4f}, accuracy: {result['rel_accuracy']:.4f}, precision: {result['rel_precision']:.4f}, recall: {result['rel_recall']:.4f}, f1: {result['rel_f1']:.4f}")
     # print(f"\t{tag} Sense Loss: {result['sense_loss']:.4f}, accuracy: {result['sense_accuracy']:.4f}, precision: {result['sense_precision']:.4f}, recall: {result['sense_recall']:.4f}, f1: {result['sense_f1']:.4f}")
@@ -376,13 +464,29 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
         epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5,
         device: torch.device="cuda", name: str="SRL"):
+    """
+        Train the model
+
+        Parameters:
+            model: The model
+            train_loader: The training data loader
+            val_loader: The validation data loader
+            test_loader: The test data loader
+            epochs: The number of epochs
+            init_lr: The initial learning rate
+            lr_encoder: The learning rate for the encoder
+            l2_lambda: The lambda for the L2 regularization
+            device: The device to use
+            name: The name of the model, used for logging on tensorboard
+    """
+
     tensorboard = SummaryWriter(log_dir=f'runs/{name}')
 
     optimizer = optim.AdamW([
             {'params': model.bert.parameters(), 'lr': lr_encoder},
             {'params': [p[1] for p in model.named_parameters() if 'bert' not in p[0]], 'lr': init_lr}
         ], lr=init_lr, weight_decay=0)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.00001)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
 
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model, train_loader, optimizer, l2_lambda, device)

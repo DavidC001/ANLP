@@ -9,6 +9,15 @@ from dataloaders.UP_dataloader import roles
 
 
 def print_results(relational_logits, senses_logits, results, text):
+    """
+        Print the results of the inference
+
+        Parameters:
+            relational_logits: The logits of the relations
+            senses_logits: The logits of the senses
+            results: The logits of the roles
+            text: The text of the sentence
+    """
     # tokenize the text as in the training (TreebankWordTokenizer)
     tokenizer = TreebankWordTokenizer()
     text = tokenizer.tokenize(text)
@@ -28,11 +37,13 @@ def print_results(relational_logits, senses_logits, results, text):
     relation_positions = [i for i in range(len(relational_logits)) if nn.Sigmoid()(relational_logits[i]) > 0.75]
 
     print("Role logits:")   
-    for i, phrase_role_logits in enumerate(results):
-        for j, relation_role_logits in enumerate(phrase_role_logits):
+    for i, phrase_role_logits in enumerate(results): # for each phrase
+        for j, relation_role_logits in enumerate(phrase_role_logits): # for each relation
             print(f"\tRelation {j} - Word: {text[relation_positions[j]]}")
-            for k, role_logits in enumerate(relation_role_logits):
+            for k, role_logits in enumerate(relation_role_logits): # for each word
                 # breakpoint()
+
+                # Compute the predicted roles for the word
                 predicted_roles = [
                     f"{roles[q+2]} {nn.Sigmoid()(role_logits[q]):.2f}"
                     for q in range(len(role_logits))

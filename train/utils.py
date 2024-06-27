@@ -7,6 +7,15 @@ import torch
 senses = []
 
 def collate_fn(batch):
+    """
+        Collate function for the Universal Propositions dataset
+
+        Parameters:
+            batch: The batch to collate
+
+        Returns:
+            A dictionary containing the input_ids, attention_masks, word_ids, relation_position, relation_label_mask, relation_label, senses, senses_labels, and role_labels
+    """
     global senses
     # breakpoint()
     max_len = max(len(item['tokenized_text']) for item in batch)
@@ -21,7 +30,6 @@ def collate_fn(batch):
     relation_label_masks = torch.zeros((len(batch), max_len))
     relation_labels = torch.zeros((len(batch), max_len))
 
-    # should be a 1D tensor with the same length as the number of relations in the batch
     senses_labels = torch.zeros(sum(len(item['rel_position']) for item in batch), len(senses))
 
     relation_num = 0
@@ -93,6 +101,22 @@ def collate_fn(batch):
     
 
 def get_dataloaders(root, batch_size=32, shuffle=True, model_name="bert-base-uncased"):
+    """
+        Returns the dataloaders for the Universal Propositions dataset
+
+        Parameters:
+            root: The path to the dataset
+            batch_size: The batch size
+            shuffle: Whether to shuffle the dataset
+            model_name: The name of the model to use for tokenization
+
+        Returns:
+            train_loader: The dataloader for the training dataset
+            dev_loader: The dataloader for the development dataset
+            test_loader: The dataloader for the test dataset
+            num_senses: The number of senses in the dataset
+            num_roles: The number of roles in the dataset
+    """
     train_dataset = UP_Dataset(root + "en_ewt-up-train.tsv", model_name)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=shuffle)
 
