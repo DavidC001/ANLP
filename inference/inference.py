@@ -1,7 +1,10 @@
 import torch
-from model import SRL_MODEL
 from nltk.tokenize import TreebankWordTokenizer
 import torch.nn as nn
+import sys
+sys.path.append('.')
+
+from model import SRL_MODEL
 from dataloaders.UP_dataloader import roles
 
 

@@ -1,0 +1,8 @@
+torch
+nltk
+langchain_community
+networkx
+dash
+dash_cytoscape
+wikipedia
+transformers

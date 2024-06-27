@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 sys.path.append('.')
 from dataloaders.UP_dataloader import roles 
-from model import SRL_MODEL, print_results
+from model import SRL_MODEL
 
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
@@ -144,7 +144,9 @@ def fetch_wikipedia_article(title):
 
 def compute_graph(graph, mode):
     # Clean the database before populating
-    clean_database(graph)
+    reset_database = input("Do you want to reset the database? (y/n): ")
+    if reset_database == "y":
+        clean_database(graph)
 
     if mode == "w":
         # Fetch a Wikipedia article
@@ -165,8 +167,12 @@ def compute_graph(graph, mode):
     model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{model_name}.pt"))
 
+    separate_sentences = input("Do you want to process each sentence separately? (y/n): ")
     # Split the article into sentences
-    sentences = sent_tokenize(article_content)
+    if separate_sentences == "y":
+        sentences = sent_tokenize(article_content)
+    else:
+        sentences = [article_content]
 
     # Process each sentence
     i = 0
@@ -176,12 +182,10 @@ def compute_graph(graph, mode):
         print(f"\nProcessing sentence: {sentence}")
 
         relational_logits, senses_logits, results = model.inference(sentence)
-        # print_results(relational_logits, senses_logits, results, sentence)
 
         if (len(results) > 0):
             populate_knowledge_graph(relational_logits, results[0], sentence, graph, i)
         i += 1
-
 
 def serve_KG(graph):
     G = fetch_graph_data(graph)
@@ -197,8 +201,8 @@ def serve_KG(graph):
         ),
         cyto.Cytoscape(
             id='cytoscape',
-            layout={'name': 'cose'},  # Using 'cose' layout for better node spreading
-            style={'width': '100%', 'height': '600px'},
+            layout={'name': 'cose', 'randomize': True, 'nodeRepulsion': 10000000},
+            style={'width': '100%', 'height': '800px'},
             elements=elements,
             stylesheet=[
                 {'selector': 'node', 'style': {'label': 'data(label)', 'background-color': 'skyblue'}},
@@ -219,8 +223,7 @@ def serve_KG(graph):
         subgraph = nx.ego_graph(G, selected_relation)
         return create_cytoscape_elements(subgraph)
 
-    app.run_server(debug=True)
-
+    app.run() 
 
 if __name__ == '__main__':
     # Initialize the Neo4j connection

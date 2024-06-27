@@ -1,17 +1,17 @@
 import torch
-from transformers import AutoTokenizer
 from nltk.tokenize import TreebankWordTokenizer, sent_tokenize
 import json
-import sys
 import wikipedia
 import re
-sys.path.append('.')
-from dataloaders.UP_dataloader import roles 
-from model import SRL_MODEL, print_results
 import matplotlib.pyplot as plt
 import networkx as nx
 from langchain_community.graphs import Neo4jGraph
 from tqdm import tqdm
+import sys
+sys.path.append('.')
+
+from dataloaders.UP_dataloader import roles 
+from model import SRL_MODEL, print_results
 
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)

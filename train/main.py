@@ -1,8 +1,8 @@
 import sys
 sys.path.append('.')
 from model import SRL_MODEL
-from utils import get_dataloaders
-from functions import train
+from train.utils import get_dataloaders
+from train.functions import train
 import torch
 import json
 
