@@ -18,7 +18,7 @@ from model import SRL_MODEL
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
 
-def get_spans(text, role_logits, threshold=0.6):
+def get_spans(text, role_logits, threshold=0.6, mode="top"):
     role_spans = {}
 
     for idx, logits in enumerate(role_logits):
@@ -37,20 +37,30 @@ def get_spans(text, role_logits, threshold=0.6):
 
     final_spans = []
     for role_idx, spans in role_spans.items():
-        # take the most probable (use mean)
-        max_prob = 0
-        max_span = None
-        for span in spans:
-            prob = torch.mean(torch.tensor(span[2]))
-            if prob > max_prob:
-                max_prob = prob
-                max_span = span
-        
-        final_spans.append((max_span[0], max_span[1], roles[role_idx+2]))
+        if mode == "t":
+            # take the most probable (use mean)
+            max_prob = 0
+            max_span = None
+            for span in spans:
+                prob = torch.mean(torch.tensor(span[2]))
+                if prob > max_prob:
+                    max_prob = prob
+                    max_span = span
+            final_spans.append((max_span[0], max_span[1], roles[role_idx+2]))
+
+        elif mode == "a":
+            # concatenate all spans
+            span_text = []
+            span_pos = []
+            for span in spans:
+                span_text.extend(span[0])
+                span_pos.extend(span[1])
+            final_spans.append((span_text, span_pos, roles[role_idx+2]))
+
 
     return final_spans
 
-def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0):
+def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0, aggregate_spans="t"):
     tokenizer = TreebankWordTokenizer()
     text_tokens = tokenizer.tokenize(text)
 
@@ -58,7 +68,7 @@ def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0)
 
     for relation_position, result in zip(relation_positions, results):
         # Get the spans
-        spans = get_spans(text_tokens, result)
+        spans = get_spans(text_tokens, result, mode=aggregate_spans)
 
         relation_node = {
             "id": f"relation_{relation_position}_{sent_id}",
@@ -174,6 +184,8 @@ def compute_graph(graph, mode):
     else:
         sentences = [article_content]
 
+    aggregate_spans = input("Do you want to aggregate all spans for each relation or only the most probable one? (a/t): ")
+
     # Process each sentence
     i = 0
     for sentence in tqdm(sentences):
@@ -184,7 +196,7 @@ def compute_graph(graph, mode):
         relational_logits, senses_logits, results = model.inference(sentence)
 
         if (len(results) > 0):
-            populate_knowledge_graph(relational_logits, results[0], sentence, graph, i)
+            populate_knowledge_graph(relational_logits, results[0], sentence, graph, i, aggregate_spans)
         i += 1
 
 def serve_KG(graph):
@@ -201,7 +213,7 @@ def serve_KG(graph):
         ),
         cyto.Cytoscape(
             id='cytoscape',
-            layout={'name': 'cose', 'randomize': True, 'nodeRepulsion': 10000000},
+            layout={'name': 'cose', 'randomize': True, 'nodeRepulsion': 10000000, 'animate': False},
             style={'width': '100%', 'height': '800px'},
             elements=elements,
             stylesheet=[
