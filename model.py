@@ -36,6 +36,20 @@ class GatedCombination(nn.Module):
         
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
+class LSTMClassifier(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes):
+        super(LSTMClassifier, self).__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
+
+    def forward(self, x):
+        
+        # Forward propagate LSTM
+        out, _ = self.lstm(x)  # out: tensor of shape (batch_size, seq_length, hidden_size)
+        # Decode the hidden states for each word
+        out = self.fc(out)
+        return out
+
 class SRL_MODEL(nn.Module):
     def __init__(self, model_name, sense_classes, role_classes, 
                  combine_method='mean', norm_layer=False,
@@ -125,7 +139,7 @@ class SRL_MODEL(nn.Module):
             if len(role_layers) > 0:
                 print("Warning: role_layers values will be ignored when using an LSTM for the role classifier")
             # hoping to make them more stable
-            self.role_classifier = nn.LSTM(role_classifer_input_size, role_classes, len(role_layers), batch_first=True)
+            self.role_classifier = LSTMClassifier(role_classifer_input_size, role_classes, max(1,len(role_layers)), role_classes)
 
         # Initialize the tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -237,10 +251,7 @@ class SRL_MODEL(nn.Module):
                 relation_hidden_states = torch.stack(relation_hidden_states)
                 relation_hidden_states = self.norm_layer(relation_hidden_states) if self.norm else relation_hidden_states
 
-                if not self.role_LSTM:
-                    role_logits = self.role_classifier(relation_hidden_states)
-                else:
-                    role_logits, _ = self.role_classifier(relation_hidden_states)
+                role_logits = self.role_classifier(relation_hidden_states)
                 
                 results.append(role_logits)
             else:
