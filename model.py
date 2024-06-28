@@ -162,7 +162,7 @@ class SRL_MODEL(nn.Module):
                 relational_logits (torch.Tensor): the logits for the relational classifier
         """
         # Apply the reduction if needed
-        if self.rel_class_reduction and self.dim_reduction>0:
+        if self.rel_class_reduction and self.dim_reduction:
             hidden_states = self.rel_reduction(hidden_states)
             
         batch_size, seq_len, hidden_size = hidden_states.size()
@@ -267,7 +267,7 @@ class SRL_MODEL(nn.Module):
         hidden_states = outputs.last_hidden_state
 
         # Compute the logits for the relational classifier
-        relational_class_input = self.rel_reduction(hidden_states) if self.dim_reduction>0 else hidden_states
+        relational_class_input = self.rel_reduction(hidden_states) if (self.dim_reduction and self.rel_class_reduction) else hidden_states
         relational_logits = self.relational_classifier(relational_class_input).squeeze(-1)
         
         # Compute the logits for the senses classifier
