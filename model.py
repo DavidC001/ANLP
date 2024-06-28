@@ -104,7 +104,7 @@ class SRL_MODEL(nn.Module):
 
         # Initialize the module for the relational classifier
         self.rel_class_reduction = relation_reduction
-        if self.rel_class_reduction:
+        if self.rel_class_reduction and self.dim_reduction:
             self.relational_classifier = nn.Linear(dim_reduction, 1)
         else:
             self.relational_classifier = nn.Linear(hidden_size, 1)
@@ -272,7 +272,7 @@ class SRL_MODEL(nn.Module):
         
         # Compute the logits for the senses classifier
         # senses_logits = self.sense_compute(hidden_states, relations_positions)
-        senses_logits = None
+        senses_logits = torch.zeros(1)
         
         # Compute the logits for the role classifier
         results = self.role_compute(hidden_states, relations_positions, word_ids)
@@ -327,7 +327,7 @@ class SRL_MODEL(nn.Module):
             relation_positions = [word_ids.index(i) for i in relation_positions]
 
             # senses_logits = self.sense_compute(hidden_states, [relation_positions])
-            senses_logits = None
+            senses_logits = torch.zeros(1)
 
             results = self.role_compute(hidden_states, [relation_positions], [word_ids])
             # results = [result.squeeze(0) for result in results]

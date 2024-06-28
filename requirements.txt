@@ -6,3 +6,4 @@ dash
 dash_cytoscape
 wikipedia
 transformers
+tkinter
