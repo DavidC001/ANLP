@@ -104,7 +104,7 @@ class SRL_MODEL(nn.Module):
 
         # Initialize the module for the relational classifier
         self.rel_class_reduction = relation_reduction
-        if self.rel_class_reduction and self.dim_reduction:
+        if self.rel_class_reduction and dim_reduction>0:
             self.relational_classifier = nn.Linear(dim_reduction, 1)
         else:
             self.relational_classifier = nn.Linear(hidden_size, 1)
