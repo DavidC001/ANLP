@@ -36,7 +36,8 @@ def train_SRL():
         tests[test]["role_classes"] = num_roles
 
         model = SRL_MODEL(**tests[test])
-        print(f"Number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
+        print(f"Total number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters())}")
+        print(f"Number of parameters in the classifiers: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
         train(model, train_loader, val_loader, test_loader,
             epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=1,
