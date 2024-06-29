@@ -10,6 +10,8 @@ import json
 import os
 from tqdm import tqdm
 import argparse
+import matplotlib.pyplot as plt
+    
 
 torch.manual_seed(0)
 
@@ -57,31 +59,88 @@ def train_SRL(top=True):
                 # save the results to a json file
                 json.dump(results, f)
 
-    #display graph with role F1 for y and number of parameters for x
-    import matplotlib.pyplot as plt
+    #display graph with role F1 for y and number of parameters for x for UP
+    # plt.figure()
+    # for model_name, data in results.items():
+    #     if "NOM" not in model_name:
+    #         plt.scatter(data["params"], data["result"]["role_f1"], label=model_name)
+
+    # plt.xlabel("Number of parameters UP dataset")
+    # plt.ylabel("Role F1")
+    # plt.legend()
+    # plt.show()
+
+    #display graph with role F1 for y and number of parameters in classifiers for x for UP
     plt.figure()
     for model_name, data in results.items():
-        plt.scatter(data["params"], data["result"]["role_f1"], label=model_name)
+        if "NOM" not in model_name:
+            plt.scatter(data["params_class"], data["result"]["role_f1"], label=model_name)
 
-    plt.xlabel("Number of parameters")
+    plt.xlabel("Number of parameters in classifiers UP dataset")
     plt.ylabel("Role F1")
     plt.legend()
     plt.show()
 
+    # make it into a latex table for the report, one having the role F1, precision, recall and accuracy and the other with F1, precision, recall and accuracy for the relations
+    with open(f"results_table_UP_{top}.tex", "w") as f:
+        f.write("\\begin{table}\n")
+        f.write("\\begin{tabular}{l|c|c|c|c}\n")
+        f.write("\\hline\nModel & \\multicolumn{2}{c|}{Role} & \\multicolumn{2}{c}{Pred} \\\\ \n\\hline\n& F1 & Loss & F1 & Loss \\\\\n\\hline\n")
+        for model_name, data in results.items():
+            if "NOM" not in model_name:
+                f.write(f"{model_name} & {data['result']['role_f1']:.3f} & {data['result']['role_loss']:.3f} & {data['result']['rel_f1']:.3f} & {data['result']['rel_loss']:.3f} \\\\ \n")
+        f.write("\\hline\n")
+        f.write("\\end{tabular}\n")
+        f.write("\\end{table}\n")
+
+
+    # for NOM
+    # plt.figure()
+    # for model_name, data in results.items():
+    #     if "NOM" in model_name:
+    #         plt.scatter(data["params"], data["result"]["role_f1"], label=model_name)
+
+    # plt.xlabel("Number of parameters NOM dataset")
+    # plt.ylabel("Role F1")
+    # plt.legend()
+    # plt.show()
+
     plt.figure()
     for model_name, data in results.items():
-        plt.scatter(data["params_class"], data["result"]["role_f1"], label=model_name)
+        if "NOM" in model_name:
+            plt.scatter(data["params_class"], data["result"]["role_f1"], label=model_name)
 
-    plt.xlabel("Number of parameters in classifiers")
+    plt.xlabel("Number of parameters in classifiers NOM dataset")
     plt.ylabel("Role F1")
     plt.legend()
     plt.show()
+
+    print("\n\n")
+    # make it into a latex table for the report, one having the role F1, precision, recall and accuracy and the other with F1, precision, recall and accuracy for the relations
+    with open(f"results_table_NOM_{top}.tex", "w") as f:
+        f.write("\\begin{table}\n")
+        f.write("\\begin{tabular}{l|c|c|c|c}\n")
+        f.write("\\hline\nModel & \\multicolumn{2}{c|}{Role} & \\multicolumn{2}{c}{Pred} \\\\ \n\\hline\n& F1 & Loss & F1 & Loss \\\\\n\\hline\n")
+        for model_name, data in results.items():
+            if "NOM" in model_name:
+                f.write(f"{model_name} & {data['result']['role_f1']:.3f} & {data['result']['role_loss']:.3f} & {data['result']['rel_f1']:.3f} & {data['result']['rel_loss']:.3f} \\\\ \n")
+        f.write("\\hline\n")
+        f.write("\\end{tabular}\n")
+        f.write("\\end{table}\n")
 
 
 
 if __name__ == '__main__':
     #get from arguments top or not
     parser = argparse.ArgumentParser()
-    parser.add_argument("--top", type=bool, default=True)
+    parser.add_argument("--top", action="store_true")
+    parser.add_argument("--all", action="store_true")
     args = parser.parse_args()
-    train_SRL(args.top)
+
+    if args.all:
+        train_SRL(top=False)
+    if args.top:
+        train_SRL(top=True)
+
+    if not args.all and not args.top:
+        print("Please specify either --top or --all")
