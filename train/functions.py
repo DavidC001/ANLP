@@ -70,13 +70,78 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor):
 
     return loss, sense_acc, sense_precision, sense_recall, sense_f1
 
-def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
+
+def get_spans(role_logits, threshold=0.5):
+    """
+        Get the spans of the roles from the logits
+
+        Parameters:
+            role_logits: The logits of the roles
+            threshold: The threshold for the probability
+            mode: The mode to use for the spans (t for taking the most probable, a for aggregating all)
+
+        Returns:
+            The spans of the roles
+    """
+    role_spans = {}
+
+    for idx, logits in enumerate(role_logits):
+        for role_idx, logit in enumerate(logits):
+            prob = torch.sigmoid(logit)
+            if prob > threshold:
+                if role_idx not in role_spans:
+                    role_spans[role_idx] = [([idx], [prob])]
+                else:
+                    if (role_spans[role_idx][-1][0][-1] + 1) == idx: # Check if the current token is contiguous with the previous one
+                        role_spans[role_idx][-1][0].append(idx)
+                        role_spans[role_idx][-1][1].append(prob)
+                    else: # If not, start a new span
+                        role_spans[role_idx].append(([idx], [prob]))
+
+    final_spans = {}
+    for role_idx, spans in role_spans.items():
+        # take the most probable (use mean)
+        max_prob = 0
+        max_span = None
+        for span in spans:
+            prob = torch.mean(torch.tensor(span[1]))
+            if prob > max_prob:
+                max_prob = prob
+                max_span = span
+        final_spans[role_idx] = max_span[0]
+
+    return final_spans
+
+
+def top_span(logits):
+    """
+        Select the top span for each role
+
+        Parameters:
+            logits: The logits from the model
+
+        Returns:
+            The masked logits to have only the top span for each role
+    """
+    out = torch.zeros_like(logits)
+
+    for rel in range(logits.shape[0]): 
+        spans = get_spans(logits[rel])
+        
+        for role in spans:
+            out[rel,spans[role],role] = 1
+    
+    return out
+
+
+def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool = False):
     """
         Compute loss for role classification
 
         Parameters:
             results: The logits from the model
             labels: The labels for the roles
+            top: Wether to use top selection for the predicted spans
 
         Returns:
             The loss, accuracy, precision, recall, and f1 score for the role classification
@@ -90,6 +155,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
 
     for i in range(len(results)):
         role_logits = results[i]
+
         role_labels = labels[i].to(role_logits.device).float()
 
         # breakpoint()
@@ -103,11 +169,12 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor]):
         role_loss += loss
 
         # Compute accuracy and F1 score for role classification
-        role_preds = (torch.sigmoid(role_logits) > 0.5).float()
+        if (top): role_preds = top_span(role_logits)
+        else: role_preds = (torch.sigmoid(role_logits) > 0.5).float()
         
         # breakpoint()
-        for j in range(role_labels.shape[0]):
-            for k in range(role_labels.shape[1]):
+        for j in range(role_labels.shape[0]): # for each relation
+            for k in range(role_labels.shape[1]): # for each word
                 all_role_labels.append(role_labels[j][k].cpu().numpy())
                 all_role_preds.append(role_preds[j][k].cpu().numpy())
         
@@ -134,7 +201,8 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
          role_logits: torch.Tensor, role_labels: torch.Tensor,
          model: nn.Module, l2_lambda: float=0.001,
-         weight_rel: float=1, weight_sense: float=1, weight_role: float=1, F1_loss_power: float=2
+         weight_rel: float=1, weight_sense: float=1, weight_role: float=1, F1_loss_power: float=2,
+         top:bool = False
          ):
     """
         Compute the total loss for the model
@@ -152,6 +220,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
             weight_rel: The weight for the relation classification
             weight_sense: The weight for the sense classification
             weight_role: The weight for the role classification
+            top: Wether to use top selection for the predicted spans
 
         Returns:
             A dictionary containing the total loss, relation loss, sense loss, role loss, relation accuracy, relation precision, relation recall, relation f1, sense accuracy, sense precision, sense recall, sense f1, role accuracy, role precision, role recall, and role f1
@@ -161,7 +230,7 @@ def loss(rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Ten
     rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels)
     # sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels)
     sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
-    rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels)
+    rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels, top)
 
     if rel_f1 > 0.9:
         weight_rel /= rel_f1**F1_loss_power
@@ -313,7 +382,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         "role_accuracy": role_accuracy, "role_precision": role_precision, "role_recall": role_recall, "role_f1": role_f1
     }
 
-def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_loss_power: float, device: torch.device):
+def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_loss_power: float, top: bool=False, device:str="cuda"):
     """
         Perform an evaluation step
 
@@ -321,6 +390,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_los
             model: The model
             val_loader: The validation data loader
             l2_lambda: The lambda for the L2 regularization
+            top: Wether to use top selection for the predicted spans
             device: The device to use
 
         Returns:
@@ -369,7 +439,8 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_los
                              senses_logits, senses_labels, 
                              role_results, role_labels,
                              model, l2_lambda=l2_lambda,
-                             weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
+                             weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power,
+                             top = top)
 
             total_loss += loss_dict['loss'].item()
 
