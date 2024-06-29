@@ -48,6 +48,8 @@ This project is part of the master course "Applied Natural Language Processing" 
     pip install -r requirements.txt
     ```
 
+    Note: to use cuda you might need to install the version of torch that supports your cuda version.
+
 ### Data pre-preprocessing
 
 Before training the model, you need to preprocess the data. The `dataloaders` directory contains scripts for preprocessing different datasets:
