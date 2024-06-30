@@ -11,26 +11,18 @@ torch.manual_seed(0)
 def train_SRL():
     tests = {
         "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss": {
-            "model_name": "distilbert/distilbert-base-uncased",
-            "combine_method": "gating",
-            "role_layers": [100],
-            "norm_layer": True,
-            "proj_dim": 100,
-            "relation_proj": True,
-            "train_encoder": True
-        },
-        "SRL_DISTILBERT_gated_transform_redboth100_100_norm_cosineLR_weightedLoss": {
-            "model_name": "distilbert/distilbert-base-uncased",
-            "combine_method": "gating_transform",
-            "role_layers": [100],
-            "norm_layer": True,
-            "proj_dim": 100,
-            "relation_proj": True,
-            "train_encoder": True
+            "model_name": "distilbert/distilbert-base-uncased", # name of the encoder model to use
+            "combine_method": "gating", # how to combine the predicate and word representations
+            "role_layers": [100], # hidden dimensions of the role classifier
+            "norm_layer": True, # whether to apply layer normalization
+            "proj_dim": 100, # dimension of the projection layer
+            "relation_proj": True, # whether to project the relation representation
+            "train_encoder": True # whether to train the encoder
         },
     }
 
-    dataset = "NOM"
+    # Choose dataset UP or NOM
+    dataset = "UP"
 
     for test in tests:
         batch_size = 32 if ("large" in tests[test]["model_name"] and tests[test]["train_encoder"]) else 64
