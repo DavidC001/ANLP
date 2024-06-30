@@ -64,6 +64,9 @@ if __name__ == '__main__':
     with open(f"models/{name}.json", "r") as f:
         config = json.load(f)
     
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    config["device"] = device
+
     model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{name}.pt"))
     text = "I really hope this model works, otherwise I will have to train countless more and I do not have time for it"

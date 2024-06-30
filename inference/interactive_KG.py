@@ -233,6 +233,8 @@ def compute_graph(graph, mode):
     with open(f"models/{model_name}.json", "r") as f:
         config = json.load(f)
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    config["device"] = device
     model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{model_name}.pt"))
 

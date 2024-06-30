@@ -33,6 +33,9 @@ def train_SRL(top=True):
             with open(model_config, "r") as f:
                 config = json.load(f)
 
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            config["device"] = device
+
             model = SRL_MODEL(**config)
             model.load_state_dict(torch.load(f"models/{model_name}"))
             num_params = sum(p[1].numel() for p in model.named_parameters())
