@@ -441,22 +441,22 @@
     },
     "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss.pt": {
         "result": {
-            "loss": 2.141854260830169,
-            "rel_loss": 0.549984485545057,
+            "loss": 2.479549747832278,
+            "rel_loss": 0.5370837304186313,
             "sense_loss": 0.0,
-            "role_loss": 1.5918697778214799,
-            "rel_accuracy": 0.9805556535720825,
-            "rel_precision": 0.7540120862182551,
-            "rel_recall": 0.9903443164992651,
-            "rel_f1": 0.8550257028923148,
+            "role_loss": 1.942466026925026,
+            "rel_accuracy": 0.9916214346885681,
+            "rel_precision": 0.8850501779369887,
+            "rel_recall": 0.9850931402597533,
+            "rel_f1": 0.9318394092070046,
             "sense_accuracy": 0.0,
             "sense_precision": 0.0,
             "sense_recall": 0.0,
             "sense_f1": 0.0,
-            "role_accuracy": 0.9875339872576857,
-            "role_precision": 0.5682139904960569,
-            "role_recall": 0.8578699822463342,
-            "role_f1": 0.6079410990948106
+            "role_accuracy": 0.9912681705092281,
+            "role_precision": 0.6660552734045335,
+            "role_recall": 0.8442889458203942,
+            "role_f1": 0.6719060352040604
         },
         "params": 66549908,
         "params_class": 187028
