@@ -438,5 +438,137 @@
         },
         "params": 560484260,
         "params_class": 593828
+    },
+    "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss.pt": {
+        "result": {
+            "loss": 2.141854260830169,
+            "rel_loss": 0.549984485545057,
+            "sense_loss": 0.0,
+            "role_loss": 1.5918697778214799,
+            "rel_accuracy": 0.9805556535720825,
+            "rel_precision": 0.7540120862182551,
+            "rel_recall": 0.9903443164992651,
+            "rel_f1": 0.8550257028923148,
+            "sense_accuracy": 0.0,
+            "sense_precision": 0.0,
+            "sense_recall": 0.0,
+            "sense_f1": 0.0,
+            "role_accuracy": 0.9875339872576857,
+            "role_precision": 0.5682139904960569,
+            "role_recall": 0.8578699822463342,
+            "role_f1": 0.6079410990948106
+        },
+        "params": 66549908,
+        "params_class": 187028
+    },
+    "SRL_DISTILBERT_gated_transform_redboth100_100_norm_cosineLR_weightedLoss.pt": {
+        "result": {
+            "loss": 2.5227136434392725,
+            "rel_loss": 0.5349969546845619,
+            "sense_loss": 0.0,
+            "role_loss": 1.9877166893888027,
+            "rel_accuracy": 0.9915130138397217,
+            "rel_precision": 0.8823858822444792,
+            "rel_recall": 0.9863968353179235,
+            "rel_f1": 0.930897382675947,
+            "sense_accuracy": 0.0,
+            "sense_precision": 0.0,
+            "sense_recall": 0.0,
+            "sense_f1": 0.0,
+            "role_accuracy": 0.9907157261626893,
+            "role_precision": 0.6409239001102769,
+            "role_recall": 0.8459267191387353,
+            "role_f1": 0.6495251874952527
+        },
+        "params": 66570008,
+        "params_class": 207128
+    },
+    "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLowerLR_weightedLoss.pt": {
+        "result": {
+            "loss": 2.141854260830169,
+            "rel_loss": 0.549984485545057,
+            "sense_loss": 0.0,
+            "role_loss": 1.5918697778214799,
+            "rel_accuracy": 0.9805556535720825,
+            "rel_precision": 0.7540120862182551,
+            "rel_recall": 0.9903443164992651,
+            "rel_f1": 0.8550257028923148,
+            "sense_accuracy": 0.0,
+            "sense_precision": 0.0,
+            "sense_recall": 0.0,
+            "sense_f1": 0.0,
+            "role_accuracy": 0.9875339872576857,
+            "role_precision": 0.5682139904960569,
+            "role_recall": 0.8578699822463342,
+            "role_f1": 0.6079410990948106
+        },
+        "params": 66549908,
+        "params_class": 187028
+    },
+    "SRL_DISTILBERT_gated_transform_redboth100_100_norm_cosineLowerLR_weightedLoss.pt": {
+        "result": {
+            "loss": 2.1874021520005895,
+            "rel_loss": 0.5516580317882781,
+            "sense_loss": 0.0,
+            "role_loss": 1.6357441176759435,
+            "rel_accuracy": 0.9800891280174255,
+            "rel_precision": 0.7501267165638728,
+            "rel_recall": 0.9891559430574904,
+            "rel_f1": 0.8520146492442252,
+            "sense_accuracy": 0.0,
+            "sense_precision": 0.0,
+            "sense_recall": 0.0,
+            "sense_f1": 0.0,
+            "role_accuracy": 0.9868877536508536,
+            "role_precision": 0.5665625114007771,
+            "role_recall": 0.8544774915640231,
+            "role_f1": 0.6044736765045998
+        },
+        "params": 66570008,
+        "params_class": 207128
+    },
+    "SRL_NOM_XML_ROBERTA_CONLL_gated_redboth100_100_norm_cosineHigherLR_weightedLoss.pt": {
+        "result": {
+            "loss": 9.212662473638007,
+            "rel_loss": 1.1131414771080017,
+            "sense_loss": 0.0,
+            "role_loss": 8.099521018089131,
+            "rel_accuracy": 0.7579218745231628,
+            "rel_precision": 0.18049085488467095,
+            "rel_recall": 1.0,
+            "rel_f1": 0.30491076496274816,
+            "sense_accuracy": 0.0,
+            "sense_precision": 0.0,
+            "sense_recall": 0.0,
+            "sense_f1": 0.0,
+            "role_accuracy": 0.9813785158792805,
+            "role_precision": 1.0,
+            "role_recall": 0.34515366430260047,
+            "role_f1": 0.34515366430260047
+        },
+        "params": 560128660,
+        "params_class": 238228
+    },
+    "SRL_NOM_XML_ROBERTA_CONLL_gated_redboth100_100_norm_cosineLR_weightedLoss.pt": {
+        "result": {
+            "loss": 1.4813813311047852,
+            "rel_loss": 0.5015971018001437,
+            "sense_loss": 0.0,
+            "role_loss": 0.9797842331463471,
+            "rel_accuracy": 0.987289309501648,
+            "rel_precision": 0.7513296581407415,
+            "rel_recall": 0.9950963023442877,
+            "rel_f1": 0.8547610567988934,
+            "sense_accuracy": 0.0,
+            "sense_precision": 0.0,
+            "sense_recall": 0.0,
+            "sense_f1": 0.0,
+            "role_accuracy": 0.9942630221140418,
+            "role_precision": 0.6902718343552222,
+            "role_recall": 0.9416700378113875,
+            "role_f1": 0.7286367794819208
+        },
+        "params": 560127953,
+        "params_class": 237521
     }
 }

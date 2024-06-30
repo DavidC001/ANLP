@@ -20,8 +20,8 @@ def train_SRL(top=True):
     results = {}
 
     # load the already evaluated models from results.json
-    if os.path.exists(f"results_{top}.json"):
-        with open(f"results_{top}.json", "r") as f:
+    if os.path.exists(f"results_{"top" if top else "concat"}.json"):
+        with open(f"results_{"top" if top else "concat"}.json", "r") as f:
             results = json.load(f)
     
     for model_name in tqdm(os.listdir('models')):
@@ -55,7 +55,7 @@ def train_SRL(top=True):
             results[model_name] = {"result":result, "params": num_params, "params_class":num_params_classifiers}
     
             # save results to a file
-            with open(f"results_{top}.json", "w") as f:
+            with open(f"results_{"top" if top else "concat"}.json", "w") as f:
                 # save the results to a json file
                 json.dump(results, f)
 
@@ -134,13 +134,13 @@ if __name__ == '__main__':
     #get from arguments top or not
     parser = argparse.ArgumentParser()
     parser.add_argument("--top", action="store_true")
-    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--concat", action="store_true")
     args = parser.parse_args()
 
-    if args.all:
+    if args.concat:
         train_SRL(top=False)
     if args.top:
         train_SRL(top=True)
 
-    if not args.all and not args.top:
-        print("Please specify either --top or --all")
+    if not args.concat and not args.top:
+        print("Please specify either --top or --concat")

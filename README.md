@@ -29,6 +29,7 @@ This project is part of the master course "Applied Natural Language Processing" 
 │   ├── main.py                 - Main script for training the model
 |
 ├── model.py                    - Core model architecture
+├── evaluation.py               - Computes the metrics of the saved models on the test set and saves the to a file
 ├── requirements.txt            - Python dependencies
 |
 ├── .gitignore                  - Git ignore file
@@ -79,12 +80,12 @@ In the script it's possible to define the tests to run, the model hyperparameter
 tests = {
         "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss": {
             "model_name": "distilbert/distilbert-base-uncased",
-            "combine_method": "gating",
+            "combine_method": "gating", # can be "concatenation" - "mean" - "gating" (soft attention) - "gating transform"
             "role_layers": [100],
             "role_LSTM": False,
             "norm_layer": True,
-            "dim_reduction": 100,
-            "relation_reduction": True,
+            "proj_dim": 100,
+            "relation_proj": True,
             "train_encoder": True
         },
 }
@@ -94,7 +95,14 @@ For more information on how these modify the model refer to the documentation in
 
 ## Evaluation Metrics
 
-The metrics used are Precision, Recall, and F1-score. These metrics are computed for both the identification of relations and classification of semantic roles in the sentences.
+The metrics used are Precision, Recall, and F1-score. These metrics are computed for both the identification of prepositions and classification of semantic roles in the sentences.
+
+To compute these metrics for the models in the `models` directory you can ran the script `train/evaluation.py` which will evaluate all the models in the directory and save the results to a json file. When calling the script you can choose what argument span identification strategy to evaluate using the `--top` and `--concat` flags.
+
+For example:
+    ```bash
+    python ./train/evaluation.py --top
+    ```
 
 ## Inference
 

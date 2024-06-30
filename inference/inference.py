@@ -66,7 +66,7 @@ if __name__ == '__main__':
     
     model = SRL_MODEL(**config)
     model.load_state_dict(torch.load(f"models/{name}.pt"))
-    text = "Fausto eats polenta at the beach while sipping beer."
+    text = "I really hope this model works, otherwise I will have to train countless more and I do not have time for it"
 
     if(config["role_classes"] == len(UP_roles)-2):
         roles = UP_roles

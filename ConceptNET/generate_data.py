@@ -19,7 +19,7 @@ def query_conceptnet(concept):
     response.raise_for_status()
     return response.json()
 
-def generate_and_annotate_sentence(prompt, model="gpt-4o"):
+def annotate_sentence(prompt, model="gpt-4o"):
     history = [
         {"role": "system", "content": """Your purpose is to accurately tag the phrases the user sends you. 
 This is an example on how to annotate the sentence "You wonder if he was manipulating the market with his bombing targets ." with semantic roles:
@@ -102,7 +102,7 @@ def main():
         
     #     # Generate sentence
     #     prompt_generate = f"Generate a sentence involving '{seed_concept}' and '{rel} {related}'. Respond only with the sentence. If you cannot generate a sentence, respond with 'FAIL'."
-    #     sentence = generate_and_annotate_sentence(prompt_generate)
+    #     sentence = generate_sentence(prompt_generate)
     #     if sentence == "FAIL":
     #         continue
 
@@ -120,7 +120,7 @@ def main():
         # Annotate sentence
         prompt_annotate = f"{sentence}"
         
-        annotation = generate_and_annotate_sentence(prompt_annotate, model="lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF")
+        annotation = annotate_sentence(prompt_annotate, model="lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF")
         # annotation = generate_and_annotate_sentence(prompt_annotate, model="gpt-4o")
         
         print(sentence)

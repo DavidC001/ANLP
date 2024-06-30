@@ -53,7 +53,7 @@ class LSTMClassifier(nn.Module):
 class SRL_MODEL(nn.Module):
     def __init__(self, model_name, sense_classes, role_classes, 
                  combine_method='mean', norm_layer=False,
-                 dim_reduction=0, relation_reduction=False,
+                 proj_dim=0, relation_proj=False,
                  role_layers=[], role_LSTM=False, train_encoder=True,
                  device='cuda'):
         '''
@@ -65,8 +65,8 @@ class SRL_MODEL(nn.Module):
                 role_classes (int): the number of classes for the role classifier
                 combine_method (str): the method to combine the hidden states of the words and relations, can be 'mean', 'concatenation', 'gating' or 'gating_transform'
                 norm_layer (bool): whether to use a normalization layer after the combination
-                dim_reduction (int): the size of the hidden states after the reduction
-                relation_reduction (bool): whether to reduce the hidden states before the relational classifier
+                proj_dim (int): the size of the hidden states after the projection
+                relation_proj (bool): whether to project the hidden states before the relational classifier
                 role_layers (list): the sizes of the hidden layers of the role classifier
                 role_LSTM (bool): whether to use an LSTM for the role classification (note: role_layers will be ignored, only its length is used)
                 train_encoder (bool): whether to train the encoder model
@@ -96,16 +96,16 @@ class SRL_MODEL(nn.Module):
         # self.senses_classifier = nn.Sequential(*self.senses_classifier_layers)
 
         # Initialize the modules for the dimensionality reduction if needed
-        self.dim_reduction = (dim_reduction > 0)
+        self.dim_reduction = (proj_dim > 0)
         if self.dim_reduction:
-            role_size = dim_reduction
-            self.rel_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
-            self.word_reduction = nn.Sequential(nn.Linear(hidden_size, dim_reduction), nn.ReLU())
+            role_size = proj_dim
+            self.rel_reduction = nn.Sequential(nn.Linear(hidden_size, proj_dim), nn.ReLU())
+            self.word_reduction = nn.Sequential(nn.Linear(hidden_size, proj_dim), nn.ReLU())
 
         # Initialize the module for the relational classifier
-        self.rel_class_reduction = relation_reduction
-        if self.rel_class_reduction and dim_reduction>0:
-            self.relational_classifier = nn.Linear(dim_reduction, 1)
+        self.rel_class_reduction = relation_proj
+        if self.rel_class_reduction and proj_dim>0:
+            self.relational_classifier = nn.Linear(proj_dim, 1)
         else:
             self.relational_classifier = nn.Linear(hidden_size, 1)
 
