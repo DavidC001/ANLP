@@ -67,9 +67,12 @@ These are the links to download the datasets:
 For the paths to adjust in the script to preprocess the nomBank dataset make reference to this [repository](https://github.com/CogComp/SRL-English.git). Note, you also need to adjust the paths and download [ALGNLP_2](https://github.com/Hai-Pham/ALGNLP_2.git) data.
 
 ## Model Architecture
+<img src="https://github.com/DavidC001/ANLP/assets/40665241/acd4fb1f-cd4a-4dac-a13c-1b9c51c66cd7" align="left" width="40%" style="margin-right: 15px; margin-bottom: 10px;" />
 
-The core model is defined in `model.py`, which includes the `SRL_MODEL` which extends a pre-trained transformer model based on BERT architecture.
+The core model is defined in `model.py`, including the `SRL_MODEL` model class which extends a pre-trained transformer model based on BERT architecture.
 For more details on the model architecture, refer to the project report.
+
+<br clear="left"/>
 
 ## Training the Model
 
@@ -92,7 +95,6 @@ tests = {
 ```
 
 For more information on how these modify the model refer to the documentation in the `model.py` file.
-
 ## Evaluation Metrics
 
 The metrics used are Precision, Recall, and F1-score. These metrics are computed for both the identification of prepositions and classification of semantic roles in the sentences.
