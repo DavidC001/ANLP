@@ -97,7 +97,7 @@ tests = {
 For more information on how these modify the model refer to the documentation in the `model.py` file.
 ## Evaluation Metrics
 
-The metrics used are Precision, Recall, and F1-score. These metrics are computed for both the identification of prepositions and classification of semantic roles in the sentences.
+The metrics used are Precision, Recall, and F1-score. These metrics are computed for both the identification of prepositions and the classification of semantic roles in the sentences.
 
 To compute these metrics for the models in the `models` directory you can ran the script `train/evaluation.py` which will evaluate all the models in the directory and save the results to a json file. When calling the script you can choose what argument span identification strategy to evaluate using the `--top` and `--concat` flags.
 
@@ -110,7 +110,7 @@ For example:
 
 There are two scripts for inference:
 - `inference.py`: This script allows you to make predictions on new sentences from the terminal, to use it you need to adjust the paths and have a trained model available with its configuration json file.
-- `interactive_KG.py`: This script generates an interactive Knowledge Graph using as input a file or a wikipedia page. To use it you need to set up an instance of [Neo4j](https://neo4j.com/) and adjust the credentials in the script.
+- `interactive_KG.py`: This script generates an interactive Knowledge Graph using as input a file (the default file is `text.txt` from the root directory of the repository)  or a wikipedia page. To use it you need to set up an instance of [Neo4j](https://neo4j.com/) and adjust the credentials in the script.
 
 ## Trained Models
 
