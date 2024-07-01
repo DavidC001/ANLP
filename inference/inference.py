@@ -49,7 +49,7 @@ def print_results(relational_logits, senses_logits, results, text):
                 predicted_roles = [
                     f"{roles[q+2]} {nn.Sigmoid()(role_logits[q]):.2f}"
                     for q in range(len(role_logits))
-                    if nn.Sigmoid()(role_logits[q]) > 0.5 and q != 0
+                    if nn.Sigmoid()(role_logits[q]) > 0.75 and q != 0
                 ]
 
                 print(f"\t\tWord: {text[k]} - predicted roles: {predicted_roles}")
@@ -64,6 +64,8 @@ if __name__ == '__main__':
     with open(f"models/{name}.json", "r") as f:
         config = json.load(f)
     
+    threshold = input("Insert the threshold to use for the roles: ")
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     config["device"] = device
 
