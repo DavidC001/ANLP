@@ -134,7 +134,7 @@ def top_span(logits):
     return out
 
 
-def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool = False, group:bool = False, treshold:float = 0.5):
+def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool = False, group:bool = False, threshold:float = 0.5):
     """
         Compute loss for role classification
 
@@ -143,7 +143,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
             labels: The labels for the roles
             top: Wether to use top selection for the predicted spans
             group: Wether to group the roles to compute the loss
-            treshold: The threshold for the role classification
+            threshold: The threshold for the role classification
 
         Returns:
             The loss, accuracy, precision, recall, and f1 score for the role classification
@@ -177,8 +177,8 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
             role_loss += loss
 
         # Compute accuracy and F1 score for role classification
-        if (top): role_preds = top_span(role_logits, treshold=treshold)
-        else: role_preds = (torch.sigmoid(role_logits) > treshold).float()
+        if (top): role_preds = top_span(role_logits, threshold=threshold)
+        else: role_preds = (torch.sigmoid(role_logits) > threshold).float()
         
         # breakpoint()
         for j in range(role_labels.shape[0]): # for each relation
@@ -215,7 +215,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
 def loss(model: nn.Module,
          rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Tensor, 
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
-         role_logits: torch.Tensor, role_labels: torch.Tensor, group_roles:bool = False, role_treshold:float = 0.5,
+         role_logits: torch.Tensor, role_labels: torch.Tensor, group_roles:bool = False, role_threshold:float = 0.5,
          l2_lambda: float=0.001, weight_rel: float=1, weight_sense: float=1, weight_role: float=1, F1_loss_power: float=2,
          top:bool = False
          ):
@@ -232,7 +232,7 @@ def loss(model: nn.Module,
             role_logits: The logits for the role classification
             role_labels: The labels for the role classification
             group_roles: Wether to group the roles to compute the loss
-            role_treshold: The threshold for the role classification
+            role_threshold: The threshold for the role classification
             l2_lambda: The lambda for the L2 regularization
             weight_rel: The weight for the relation classification
             weight_sense: The weight for the sense classification (not used)
@@ -248,7 +248,7 @@ def loss(model: nn.Module,
     rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels)
     # sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels)
     sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
-    rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels, top, group_roles, role_treshold)
+    rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels, top, group_roles, role_threshold)
 
     if rel_f1 > 0.9:
         weight_rel /= rel_f1**F1_loss_power
@@ -278,7 +278,7 @@ def loss(model: nn.Module,
 
 
 def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, 
-               F1_loss_power: float, group_roles:bool = False, role_treshold:float = 0.5,
+               F1_loss_power: float, group_roles:bool = False, role_threshold:float = 0.5,
                device:str="cuda"):
     """
         Perform a training step
@@ -290,7 +290,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
             l2_lambda: The lambda for the L2 regularization
             F1_loss_power: The power for the rescaling using the F1 score
             group_roles: Wether to group the roles to compute the loss
-            role_treshold: The threshold for the role classification
+            role_threshold: The threshold for the role classification
             device: The device to use
 
         Returns:
@@ -346,7 +346,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         loss_dict = loss(model=model,
                          rel_mask=relation_label_masks, rel_logits=relational_logits, rel_labels=relation_labels, 
                          sense_logits=senses_logits, sense_labels=senses_labels, 
-                         role_logits=role_results, role_labels=role_labels, group_roles=group_roles, role_treshold=role_treshold,
+                         role_logits=role_results, role_labels=role_labels, group_roles=group_roles, role_threshold=role_threshold,
                          l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
 
         loss_dict['loss'].backward()
@@ -406,7 +406,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
     }
 
 def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_loss_power: float, 
-              top: bool=False, group_roles:bool = False, role_treshold:float = 0.5,
+              top: bool=False, group_roles:bool = False, role_threshold:float = 0.5,
               device:str="cuda"):
     """
         Perform an evaluation step
@@ -418,7 +418,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_los
             F1_loss_power: The power for the rescaling using the F1 score
             top: Wether to use top selection for the predicted spans
             group_roles: Wether to group the roles to compute the loss
-            role_treshold: The threshold for the role classification
+            role_threshold: The threshold for the role classification
             device: The device to use
 
         Returns:
@@ -466,7 +466,7 @@ def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_los
             loss_dict = loss(model=model,
                              rel_mask=relation_label_masks, rel_logits=relational_logits, rel_labels=relation_labels,
                              sense_logits=senses_logits, sense_labels=senses_labels, 
-                             role_logits=role_results, role_labels=role_labels, group_roles=group_roles, role_treshold=role_treshold,
+                             role_logits=role_results, role_labels=role_labels, group_roles=group_roles, role_threshold=role_threshold,
                              l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power,
                              top = top)
 
@@ -565,7 +565,7 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
 
 def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
         epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5, F1_loss_power: float=2,
-        role_treshold:float = 0.5, group_roles:bool = False, top:bool = False,
+        role_threshold:float = 0.5, group_roles:bool = False, top:bool = False,
         device: torch.device="cuda", name: str="SRL", dataset: str="UP"):
     """
         Train the model
@@ -580,7 +580,7 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
             lr_encoder: The learning rate for the encoder
             l2_lambda: The lambda for the L2 regularization
             F1_loss_power: The power for the rescaling using the F1 score
-            role_treshold: The threshold for the role classification
+            role_threshold: The threshold for the role classification
             group_roles: Wether to group the roles to compute the loss
             top: Wether to use top selection for the predicted spans in the role classification for evaluation
             device: The device to use
@@ -599,12 +599,12 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
         train_result = train_step(model=model, 
                                   train_loader=train_loader, optimizer=optimizer, 
                                   l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
-                                  group_roles=group_roles, role_treshold=role_treshold, 
+                                  group_roles=group_roles, role_threshold=role_threshold, 
                                   device=device)
         val_result = eval_step(model=model, 
                                val_loader=val_loader, 
                                l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
-                               top=top, group_roles=group_roles, role_treshold=role_treshold, 
+                               top=top, group_roles=group_roles, role_threshold=role_threshold, 
                                device=device)
 
         print()

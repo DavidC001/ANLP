@@ -99,11 +99,11 @@ For more information on how these modify the model refer to the documentation in
 
 The metrics used are Precision, Recall, and F1-score. These metrics are computed for both the identification of prepositions and the classification of semantic roles in the sentences.
 
-To compute these metrics for the models in the `models` directory you can ran the script `train/evaluation.py` which will evaluate all the models in the directory and save the results to a json file. When calling the script you can choose what argument span identification strategy to evaluate using the `--top` and `--concat` flags.
+To compute these metrics for the models in the `models` directory you can ran the script `train/evaluation.py` which will evaluate all the models in the directory and save the results to a json file. When calling the script you can choose what argument span identification strategy to evaluate using the `--top` and `--concat` flags. You can also control the confidence threshold for the span identification using the `--threshold value` flag.
 
 For example:
     ```bash
-    python ./train/evaluation.py --top
+    python ./train/evaluation.py --top --threshold 0.75
     ```
 
 ## Inference

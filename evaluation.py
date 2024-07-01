@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 torch.manual_seed(0)
 
-def train_SRL(top=True, treshold=0.5):
+def train_SRL(top=True, threshold=0.5):
     #cycle over all models in the models folder
     results = {}
 
@@ -48,7 +48,7 @@ def train_SRL(top=True, treshold=0.5):
 
             _,_,test,_,_ = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=False, model_name=config["model_name"], dataset=dataset)
 
-            result = eval_step(model, test, l2_lambda=0, F1_loss_power=0, top=top, role_treshold=treshold, device=device)
+            result = eval_step(model, test, l2_lambda=0, F1_loss_power=0, top=top, role_threshold=threshold, device=device)
 
             #convert the tensors to floats to be able to save the results to a json file
             for key, value in result.items():
@@ -138,13 +138,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--top", action="store_true")
     parser.add_argument("--concat", action="store_true")
-    parser.add_argument("--treshold", type=float, default=0.5)
+    parser.add_argument("--threshold", type=float, default=0.5)
     args = parser.parse_args()
 
     if args.concat:
-        train_SRL(top=False, treshold=args.treshold)
+        train_SRL(top=False, threshold=args.threshold)
     if args.top:
-        train_SRL(top=True, treshold=args.treshold)
+        train_SRL(top=True, threshold=args.threshold)
 
     if not args.concat and not args.top:
         print("Please specify either --top or --concat")

@@ -21,7 +21,7 @@ roles = []
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
 
-def get_spans(text, role_logits, threshold=0.6, mode="t"):
+def get_spans(text, role_logits, threshold=0.75, mode="t"):
     """
         Get the spans of the roles from the logits
 
@@ -281,7 +281,7 @@ def serve_KG(graph):
         ),
         cyto.Cytoscape(
             id='cytoscape',
-            layout={'name': 'cose', 'randomize': True, 'nodeRepulsion': 10000000, 'animate': False},
+            layout={'name': 'cose', 'randomize': True, 'nodeRepulsion': 1000000, 'animate': False},
             style={'width': '100%', 'height': '800px'},
             elements=elements,
             stylesheet=[
