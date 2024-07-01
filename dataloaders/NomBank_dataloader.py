@@ -11,10 +11,11 @@ sys.path.append('.')
 # BERT fast TOKENIZER
 from transformers import AutoTokenizer
 
-roles = ['rel', 'None', 'ARG1', 'ARG0', 'ARG2', 'ARGM-TMP', 
-         'Support', 'ARGM-MNR', 'ARGM-LOC', 'ARG3', 'ARGM-PNC', 
-         'ARGM-EXT', 'ARGM-NEG', 'ARG4', 'ARG8', 'ARGM-ADV', 'ARG9', 
-         'ARGM-DIR', 'ARGM-DIS', 'ARG5', 'ARGM-CAU', 'ARGM-PRD']
+roles = ['rel', 'None', 'ARG1', 'ARG0', 'ARG2', 
+         'ARGM-TMP', 'Support', 'ARGM-MNR', 'ARGM-LOC', 
+         'ARG3', 'ARGM-PNC', 'ARGM-EXT', 'ARGM-NEG', 
+         'ARG4', 'ARG8', 'ARGM-ADV', 'ARG9', 'ARGM-DIR', 
+         'ARGM-DIS', 'ARG5', 'ARGM-CAU', 'ARGM-PRD']
 
 class NOM_Dataset(Dataset):
     def __init__(self, file_path, tokenizer_name):
