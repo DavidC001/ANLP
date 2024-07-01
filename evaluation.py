@@ -20,8 +20,8 @@ def train_SRL(top=True, threshold=0.5):
     results = {}
 
     # load the already evaluated models from results.json
-    if os.path.exists(f"results_{"top" if top else "concat"}.json"):
-        with open(f"results_{"top" if top else "concat"}.json", "r") as f:
+    if os.path.exists(f"results_{"top" if top else "concat"}_{threshold}.json"):
+        with open(f"results_{"top" if top else "concat"}_{threshold}.json", "r") as f:
             results = json.load(f)
     
     for model_name in tqdm(os.listdir('models')):
@@ -58,7 +58,7 @@ def train_SRL(top=True, threshold=0.5):
             results[model_name] = {"result":result, "params": num_params, "params_class":num_params_classifiers}
     
             # save results to a file
-            with open(f"results_{"top" if top else "concat"}.json", "w") as f:
+            with open(f"results_{"top" if top else "concat"}_{threshold}.json", "w") as f:
                 # save the results to a json file
                 json.dump(results, f)
 
@@ -142,8 +142,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.concat:
+        print(f"\n\nRunning evaluation with concat strategy and threshold {args.threshold}")
         train_SRL(top=False, threshold=args.threshold)
     if args.top:
+        print(f"\n\nRunning evaluation with top strategy and threshold {args.threshold}")
         train_SRL(top=True, threshold=args.threshold)
 
     if not args.concat and not args.top:
