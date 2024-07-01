@@ -141,8 +141,6 @@ if __name__ == '__main__':
     parser.add_argument("--treshold", type=float, default=0.5)
     args = parser.parse_args()
 
-    print(args.treshold)
-
     if args.concat:
         train_SRL(top=False, treshold=args.treshold)
     if args.top:
