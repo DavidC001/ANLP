@@ -113,7 +113,7 @@ def get_spans(role_logits, threshold=0.5):
     return final_spans
 
 
-def top_span(logits):
+def top_span(logits, threshold=0.5):
     """
         Select the top span for each role
 
@@ -126,7 +126,7 @@ def top_span(logits):
     out = torch.zeros_like(logits)
 
     for rel in range(logits.shape[0]): 
-        spans = get_spans(logits[rel])
+        spans = get_spans(logits[rel], threshold=threshold)
         
         for role in spans:
             out[rel,spans[role],role] = 1
