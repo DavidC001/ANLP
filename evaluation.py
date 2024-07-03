@@ -181,7 +181,7 @@ def train_SRL(top=True, threshold=0.5):
         f.write("\\hline\nModel & \\multicolumn{2}{c|}{Role} & \\multicolumn{2}{c}{Pred} \\\\ \n\\hline\n& F1 & Loss & F1 & Loss \\\\\n\\hline\n")
         for model_name, data in results.items():
             if "NOM" in model_name:
-                f.write(f"{model_name} & {data['micro_f1']['micro_f1']:.3f} & {data['result']['role_loss']:.3f} & {data['result']['rel_f1']:.3f} & {data['result']['rel_loss']:.3f} \\\\ \n")
+                f.write(f"{model_name} & {data['role_results_dataset']['micro_f1']:.3f} & {data['result']['role_loss']:.3f} & {data['result']['rel_f1']:.3f} & {data['result']['rel_loss']:.3f} \\\\ \n")
         f.write("\\hline\n")
         f.write("\\end{tabular}\n")
         f.write("\\end{table}\n")
