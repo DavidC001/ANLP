@@ -202,7 +202,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
     role_accuracy = correct_roles / total_roles
 
     # compute precision, recall and f1 for each role
-    breakpoint()
+    # breakpoint()
     role_precision, role_recall, role_f1, _ = precision_recall_fscore_support(all_role_labels, all_role_preds, zero_division=1)
 
     # compute loss for each role
