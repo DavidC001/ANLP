@@ -400,9 +400,9 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         role_recall += loss_dict['role_recall']
         role_f1 += loss_dict['role_f1']
 
-        print(f"Loss: {loss_dict['loss'].item():.4f}, Rel Loss: {loss_dict['rel_loss'].item():.4f}, Sense Loss: {loss_dict['sense_loss'].item():.4f}, Role Loss: {loss_dict['role_loss'].item():.4f}")
-        #F1
-        print(f"Rel F1: {loss_dict['rel_f1']:.4f}, Sense F1: {loss_dict['sense_f1']:.4f}, Role F1: {loss_dict['role_f1']:.4f}")
+        # print(f"Loss: {loss_dict['loss'].item():.4f}, Rel Loss: {loss_dict['rel_loss'].item():.4f}, Sense Loss: {loss_dict['sense_loss'].item():.4f}, Role Loss: {loss_dict['role_loss'].item():.4f}")
+        # #F1
+        # print(f"Rel F1: {loss_dict['rel_f1']:.4f}, Sense F1: {loss_dict['sense_f1']:.4f}, Role F1: {loss_dict['role_f1']:.4f}")
 
     len_loader = len(train_loader)
     total_loss /= len_loader
