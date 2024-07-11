@@ -10,7 +10,7 @@ torch.manual_seed(0)
 
 def train_SRL():
     tests = {
-        "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss": {
+        "TEST": {
             "model_name": "distilbert/distilbert-base-uncased", # name of the encoder model to use
             "combine_method": "gating", # how to combine the predicate and word representations
             "role_layers": [100], # hidden dimensions of the role classifier
@@ -42,7 +42,7 @@ def train_SRL():
 
         train(model, train_loader, val_loader, test_loader,
             epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=1,
-            role_threshold=0.5, group_roles=False, top=False,
+            role_threshold=0.5, group_roles=False, top=False, noise=0.2,
             device='cuda', name=test, dataset=dataset)
         
         # Save the model
