@@ -613,8 +613,8 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
             lr_encoder: The learning rate for the encoder
             l2_lambda: The lambda for the L2 regularization
             F1_loss_power: The power for the rescaling using the F1 score
-            noise: The noise to add to the labels
-            noise_prob: The probability of adding noise
+            noise: Final noise to add to the labels, will be incremented linearly from 0
+            noise_prob: Final probability of adding noise to the labels, will be incremented linearly from 0
             role_threshold: The threshold for the role classification
             group_roles: Wether to group the roles to compute the loss
             top: Wether to use top selection for the predicted spans in the role classification for evaluation
