@@ -21,6 +21,63 @@ roles = []
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
 
+# function to check if a span corresponds to an already existing node in the graph, for ARGM use exact match, for the others use a subset match
+entity_nodes = [] # saves the span id used for the entity nodes
+bert_representation = [] # saves the representation of the span
+argm_nodes = [] # saves the span id used for the argm nodes
+argm_texts = [] # saves the text of the argm nodes
+def check_existing_node(text, span_text, span_idx, role, id):
+    if role.startswith("ARGM"):
+        if span_text in argm_texts:
+            return argm_nodes[argm_texts.index(span_text)]
+        else:
+            argm_nodes.append(id)
+            argm_texts.append(span_text)
+    else:
+        # load a BERT base uncased model and use it to score similarity between the spans
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+        model = AutoModel.from_pretrained("bert-base-cased")
+        with torch.no_grad():
+            tokenized_text = tokenizer(text, return_tensors="pt")
+            input_ids = tokenized_text['input_ids']
+            attention_mask = tokenized_text['attention_mask']
+            word_ids = tokenized_text.word_ids()
+            word_ids = [(word_id if word_id is not None else -1) for word_id in word_ids]
+            # brutta soluzione a J.
+            delta = 0
+            seen_ids = set()
+            for i, word_id in enumerate(word_ids):
+                if word_id <= 0: continue
+                start, end = tokenized_text.word_to_chars(word_id)
+                if text[start-1] != ' ' and word_id not in seen_ids:
+                    delta += 1
+                    seen_ids.add(word_id)
+                word_ids[i] = word_id - delta
+            
+            outputs = model(input_ids, attention_mask=attention_mask)
+
+            # get the mean of the last hidden states for the span
+            last_hidden_states = outputs.last_hidden_state
+            span_tokens = [i for i, word_id in enumerate(word_ids) if word_id in span_idx]
+            mean_representation = last_hidden_states[0,span_tokens].mean(dim=0)
+
+            best = 0
+            indx = None
+            for i,rep in enumerate(bert_representation):
+                # breakpoint()
+                sim = torch.cosine_similarity(rep,mean_representation,dim=0)
+                if (sim>0.9 and sim>best):
+                    best = sim
+                    indx = i
+
+            if indx:
+                return entity_nodes[indx]
+            else:
+                entity_nodes.append(id)
+                bert_representation.append(mean_representation)
+    
+    return id
+
 def get_spans(text, role_logits, threshold=0.75, mode="t"):
     """
         Get the spans of the roles from the logits
@@ -101,6 +158,7 @@ def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0,
             "text": escape_text(text_tokens[relation_position]),
             "role": "relation"
         }
+
         # Create relation node in Neo4j
         graph.query(f"CREATE (n:Relation {{id: '{relation_node['id']}', text: '{relation_node['text']}', role: '{relation_node['role']}'}})")
 
@@ -112,6 +170,10 @@ def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0,
                 "text": escape_text(span_text),
                 "role": role
             }
+
+            # Check if the span corresponds to an already existing node in the graph
+            span_node["id"] = check_existing_node(text, span_text, pos, role, span_node["id"])
+
             # Create span node in Neo4j
             graph.query(f"CREATE (n:Span {{id: '{span_node['id']}', text: '{span_node['text']}', role: '{span_node['role']}'}})")
 

@@ -300,6 +300,11 @@ class SRL_MODEL(nn.Module):
 
         with torch.no_grad():
             tokenized_text = self.tokenizer(text, return_tensors='pt')
+            # if the sequence is bigger than the maximum allowed, truncate it
+            if tokenized_text['input_ids'].size(1) > self.bert.config.max_position_embeddings:
+                tokenized_text['input_ids'] = tokenized_text['input_ids'][:, :self.bert.config.max_position_embeddings]
+                tokenized_text['attention_mask'] = tokenized_text['attention_mask'][:, :self.bert.config.max_position_embeddings]
+                print("Warning: the input sequence is too long and has been truncated to the maximum allowed length")
             input_ids = tokenized_text['input_ids']
             attention_mask = tokenized_text['attention_mask']
             word_ids = tokenized_text.word_ids()

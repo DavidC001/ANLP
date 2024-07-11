@@ -18,6 +18,14 @@
             "role_recall": 0.7847118115075076,
             "role_f1": 0.6733815084032532
         },
+        "role_results_dataset": {
+            "micro_precision": 0.7766722832918773,
+            "micro_recall": 0.7098090977976583,
+            "micro_f1": 0.7417369093231162,
+            "macro_precision": 0.6206792011928614,
+            "macro_recall": 0.5172182021934436,
+            "macro_f1": 0.5035017378300611
+        },
         "params": 109669268,
         "params_class": 187028
     },
@@ -39,6 +47,14 @@
             "role_precision": 0.7669495406342217,
             "role_recall": 0.8231295538812052,
             "role_f1": 0.7250644357900513
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.8281053952321205,
+            "micro_recall": 0.7904964434993034,
+            "micro_f1": 0.8088639887949577,
+            "macro_precision": 0.6774028507289978,
+            "macro_recall": 0.5863598919693097,
+            "macro_f1": 0.5705253810000198
         },
         "params": 560128660,
         "params_class": 238228
@@ -62,6 +78,14 @@
             "role_recall": 0.8066142458759312,
             "role_f1": 0.6835180771430687
         },
+        "role_results_dataset": {
+            "micro_precision": 0.7678188257800987,
+            "micro_recall": 0.7259661215809929,
+            "micro_f1": 0.7463061614232587,
+            "macro_precision": 0.6184652057728974,
+            "macro_recall": 0.5507639204183414,
+            "macro_f1": 0.5201464205407231
+        },
         "params": 278230676,
         "params_class": 187028
     },
@@ -83,6 +107,14 @@
             "role_precision": 0.7708837562689379,
             "role_recall": 0.7862336331410246,
             "role_f1": 0.7050660360866474
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.8253976961053209,
+            "micro_recall": 0.7355967832612256,
+            "micro_f1": 0.7779142055809024,
+            "macro_precision": 0.6711673172065056,
+            "macro_recall": 0.5142307470189218,
+            "macro_f1": 0.5304885258238632
         },
         "params": 66549908,
         "params_class": 187028
@@ -106,6 +138,14 @@
             "role_recall": 0.7799674248698723,
             "role_f1": 0.6964212448566763
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8068163549649,
+            "micro_recall": 0.7360367627288504,
+            "micro_f1": 0.7698030242992088,
+            "macro_precision": 0.6649595708791975,
+            "macro_recall": 0.5127365260254992,
+            "macro_f1": 0.5259014809737284
+        },
         "params": 66570008,
         "params_class": 207128
     },
@@ -127,6 +167,14 @@
             "role_precision": 0.737768803433174,
             "role_recall": 0.8809946818585757,
             "role_f1": 0.7434919092976779
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.7350121006034984,
+            "micro_recall": 0.7815054884205727,
+            "micro_f1": 0.7575460974993685,
+            "macro_precision": 0.5747333174368292,
+            "macro_recall": 0.627983271822145,
+            "macro_f1": 0.525627576973345
         },
         "params": 108496593,
         "params_class": 186321
@@ -150,6 +198,14 @@
             "role_recall": 0.8296197730548408,
             "role_f1": 0.6951820840678815
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8119335347432024,
+            "micro_recall": 0.7882965461611792,
+            "micro_f1": 0.7999404695464524,
+            "macro_precision": 0.6364190403851895,
+            "macro_recall": 0.5824867232769891,
+            "macro_f1": 0.5452033682892273
+        },
         "params": 560132360,
         "params_class": 241928
     },
@@ -171,6 +227,14 @@
             "role_precision": 0.8025893746922694,
             "role_recall": 0.7076122886462227,
             "role_f1": 0.6513903533593121
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.8227936846237976,
+            "micro_recall": 0.717166532228496,
+            "micro_f1": 0.7663575812981586,
+            "macro_precision": 0.6891702298063734,
+            "macro_recall": 0.4018394547458474,
+            "macro_f1": 0.42548753892629243
         },
         "params": 560130521,
         "params_class": 240089
@@ -194,6 +258,14 @@
             "role_recall": 0.8317537114207755,
             "role_f1": 0.7231100843758979
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8246205733558178,
+            "micro_recall": 0.7888831854513456,
+            "micro_f1": 0.8063561068845332,
+            "macro_precision": 0.6650788659855265,
+            "macro_recall": 0.5913812631699804,
+            "macro_f1": 0.5655416529391318
+        },
         "params": 560148760,
         "params_class": 258328
     },
@@ -215,6 +287,14 @@
             "role_precision": 0.7492064885766834,
             "role_recall": 0.8335548205598108,
             "role_f1": 0.7193030215847006
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.8302015975656143,
+            "micro_recall": 0.8002493216983207,
+            "micro_f1": 0.8149503397804495,
+            "macro_precision": 0.6294074294591709,
+            "macro_recall": 0.6027041177578712,
+            "macro_f1": 0.5722311851976801
         },
         "params": 560484260,
         "params_class": 593828
@@ -238,6 +318,14 @@
             "role_recall": 0.8309371449018449,
             "role_f1": 0.7214467706981263
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8273735165521549,
+            "micro_recall": 0.7770770697367456,
+            "micro_f1": 0.8014369446020042,
+            "macro_precision": 0.6818648522971538,
+            "macro_recall": 0.5831788655421208,
+            "macro_f1": 0.5707379705688354
+        },
         "params": 560484260,
         "params_class": 593828
     },
@@ -259,6 +347,14 @@
             "role_precision": 0.7691736118505839,
             "role_recall": 0.9038270740180662,
             "role_f1": 0.7748484569045156
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.7774961058000672,
+            "micro_recall": 0.8291586593270578,
+            "micro_f1": 0.8024967687021216,
+            "macro_precision": 0.5448163141988802,
+            "macro_recall": 0.6770156559573615,
+            "macro_f1": 0.5570689676576956
         },
         "params": 560148053,
         "params_class": 257621
@@ -282,6 +378,14 @@
             "role_recall": 0.8377903954851658,
             "role_f1": 0.7444091833227998
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8417486565769321,
+            "micro_recall": 0.7925741243186429,
+            "micro_f1": 0.8164215933125188,
+            "macro_precision": 0.6672198621419784,
+            "macro_recall": 0.5997176100394839,
+            "macro_f1": 0.5871461915040513
+        },
         "params": 564195084,
         "params_class": 4304652
     },
@@ -303,6 +407,14 @@
             "role_precision": 0.7631485865741672,
             "role_recall": 0.9110959287640203,
             "role_f1": 0.7739809271996734
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.7802865294352241,
+            "micro_recall": 0.8284746425197876,
+            "micro_f1": 0.8036588833770419,
+            "macro_precision": 0.5860256501288574,
+            "macro_recall": 0.748766129715067,
+            "macro_f1": 0.6415329713469717
         },
         "params": 560483553,
         "params_class": 593121
@@ -326,6 +438,14 @@
             "role_recall": 0.8271000639715688,
             "role_f1": 0.747365501637014
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8591325530900811,
+            "micro_recall": 0.7930874336975385,
+            "micro_f1": 0.8247899640301486,
+            "macro_precision": 0.7231956093110585,
+            "macro_recall": 0.5860879827284363,
+            "macro_f1": 0.5895626079849959
+        },
         "params": 564195084,
         "params_class": 4304652
     },
@@ -347,6 +467,14 @@
             "role_precision": 0.7694128629448029,
             "role_recall": 0.8390835326611418,
             "role_f1": 0.733540906744246
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.8329786155873112,
+            "micro_recall": 0.8035980543130209,
+            "micro_f1": 0.8180246084176215,
+            "macro_precision": 0.6830783397851177,
+            "macro_recall": 0.6116426021081365,
+            "macro_f1": 0.5863553553507733
         },
         "params": 563759510,
         "params_class": 3869078
@@ -370,6 +498,14 @@
             "role_recall": 0.8356762594805351,
             "role_f1": 0.734845749980038
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8402640607131718,
+            "micro_recall": 0.790252010461734,
+            "micro_f1": 0.8144910375754216,
+            "macro_precision": 0.690979752099336,
+            "macro_recall": 0.605048757138266,
+            "macro_f1": 0.5861452056033755
+        },
         "params": 562633760,
         "params_class": 2743328
     },
@@ -391,6 +527,14 @@
             "role_precision": 0.7914267043730325,
             "role_recall": 0.9072919439076185,
             "role_f1": 0.7950066565719951
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.7970490152897503,
+            "micro_recall": 0.8252174196280252,
+            "micro_f1": 0.8108886648422872,
+            "macro_precision": 0.5542046312943725,
+            "macro_recall": 0.7090583941459954,
+            "macro_f1": 0.5827031239379183
         },
         "params": 563758803,
         "params_class": 3868371
@@ -414,6 +558,14 @@
             "role_recall": 0.9036954192040622,
             "role_f1": 0.795752206042164
         },
+        "role_results_dataset": {
+            "micro_precision": 0.7996959331052832,
+            "micro_recall": 0.8223836357121918,
+            "micro_f1": 0.8108811202286705,
+            "macro_precision": 0.5780376773940767,
+            "macro_recall": 0.6752221724382375,
+            "macro_f1": 0.5600052657739124
+        },
         "params": 564194377,
         "params_class": 4303945
     },
@@ -435,6 +587,14 @@
             "role_precision": 0.7867048816537561,
             "role_recall": 0.9027244803842669,
             "role_f1": 0.7872826901767728
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.7821892738608518,
+            "micro_recall": 0.8213738966157454,
+            "micro_f1": 0.8013028280902447,
+            "macro_precision": 0.6174654647724571,
+            "macro_recall": 0.7221650823858454,
+            "macro_f1": 0.6046548823212499
         },
         "params": 560483553,
         "params_class": 593121
@@ -458,6 +618,14 @@
             "role_recall": 0.9032249867156823,
             "role_f1": 0.8105552690678928
         },
+        "role_results_dataset": {
+            "micro_precision": 0.8042840468153569,
+            "micro_recall": 0.8304289762548451,
+            "micro_f1": 0.8171474358974359,
+            "macro_precision": 0.6160836965387769,
+            "macro_recall": 0.6874273392508254,
+            "macro_f1": 0.5858457935579428
+        },
         "params": 562633053,
         "params_class": 2742621
     },
@@ -479,6 +647,14 @@
             "role_precision": 0.8113816309351971,
             "role_recall": 0.9029180485383441,
             "role_f1": 0.8088081823840532
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.8034182603723236,
+            "micro_recall": 0.823751669326732,
+            "micro_f1": 0.8134579198764856,
+            "macro_precision": 0.6480539970259431,
+            "macro_recall": 0.7162500015331289,
+            "macro_f1": 0.6185698134806991
         },
         "params": 564194377,
         "params_class": 4303945
@@ -502,6 +678,14 @@
             "role_recall": 0.7690540504070703,
             "role_f1": 0.666334167583623
         },
+        "role_results_dataset": {
+            "micro_precision": 0.7734541869762857,
+            "micro_recall": 0.6904011146146514,
+            "micro_f1": 0.7295716075372276,
+            "macro_precision": 0.6221851631493417,
+            "macro_recall": 0.4942776939717082,
+            "macro_f1": 0.49123373529602654
+        },
         "params": 66549908,
         "params_class": 187028
     },
@@ -524,6 +708,14 @@
             "role_recall": 0.7660117922752393,
             "role_f1": 0.6550934876614783
         },
+        "role_results_dataset": {
+            "micro_precision": 0.7648725977110775,
+            "micro_recall": 0.6926498985602894,
+            "micro_f1": 0.7269718698290127,
+            "macro_precision": 0.609089911012068,
+            "macro_recall": 0.49457540271880474,
+            "macro_f1": 0.48884380011629236
+        },
         "params": 66570008,
         "params_class": 207128
     },
@@ -545,6 +737,14 @@
             "role_precision": 0.7630573443479101,
             "role_recall": 0.9019478810811852,
             "role_f1": 0.7699003951600617
+        },
+        "role_results_dataset": {
+            "micro_precision": 0.7760159484741604,
+            "micro_recall": 0.8241425360737435,
+            "micro_f1": 0.7993555113259406,
+            "macro_precision": 0.5461805059152987,
+            "macro_recall": 0.6897295584501962,
+            "macro_f1": 0.5475562334205815
         },
         "params": 560127953,
         "params_class": 237521
