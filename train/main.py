@@ -42,7 +42,7 @@ def train_SRL():
 
         train(model, train_loader, val_loader, test_loader,
             epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=1,
-            role_threshold=0.5, group_roles=False, top=False, noise=0.2,
+            role_threshold=0.5, group_roles=False, top=False, noise=0.1,
             device='cuda', name=test, dataset=dataset)
         
         # Save the model

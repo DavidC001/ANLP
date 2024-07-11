@@ -28,7 +28,7 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
 
     # Use BCEWithLogitsLoss with pos_weight
     loss_function_relation_weighted = nn.BCEWithLogitsLoss(pos_weight=pos_weight_rel.to(logits.device), reduction='mean')
-    labels_with_noise = labels + torch.rand_like(labels) * noise
+    labels_with_noise = labels + torch.rand_like(labels)**2 * (-(labels==1).float()*2+1) * noise
     labels_with_noise = labels_with_noise.to(logits.device).float()
     relational_loss = loss_function_relation_weighted(logits, labels_with_noise)
 
@@ -59,7 +59,7 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2):
     # Compute loss for sense classification
     
     criterion = nn.CrossEntropyLoss(reduction='mean')
-    labels_with_noise = labels + torch.rand_like(labels) * noise
+    labels_with_noise = labels + torch.rand_like(labels)**2 * (-(labels==1).float()*2+1) * noise
     loss = criterion(logits, labels_with_noise)
     # loss /= logits.size(0)
 
@@ -179,8 +179,8 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
 
             # Weighted Binary Cross-Entropy Loss
             criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
-            role_labes_with_noise = role_labels + torch.rand_like(role_labels) * noise
-            loss = criterion(role_logits, role_labes_with_noise).view(-1, role_labels.shape[-1]).mean(0).sum()
+            role_labels_with_noise = role_labels + torch.rand_like(role_labels)**2 * -(role_labels*2-1) * noise
+            loss = criterion(role_logits, role_labels_with_noise).view(-1, role_labels.shape[-1]).mean(0).sum()
             role_loss += loss
 
         # Compute accuracy and F1 score for role classification
@@ -202,14 +202,14 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
     role_accuracy = correct_roles / total_roles
 
     # compute precision, recall and f1 for each role
-    # breakpoint()
+    breakpoint()
     role_precision, role_recall, role_f1, _ = precision_recall_fscore_support(all_role_labels, all_role_preds, zero_division=1)
 
     # compute loss for each role
     if group:
         pos_weight = torch.tensor([max(1,(roles_labels[:,i] == 0).float().sum().item()) / max(1,(roles_labels[:,i] == 1).float().sum().item()) for i in range(roles_labels.shape[1])]).to(roles_logits.device)
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
-        role_labels_with_noise = roles_labels + torch.rand_like(roles_labels) * noise
+        role_labels_with_noise = roles_labels + torch.rand_like(roles_labels)**2 * noise
         role_loss = criterion(roles_logits, role_labels_with_noise).view(-1, roles_labels.shape[-1]).mean(0).sum()
     else:
         role_loss /= len(results)
