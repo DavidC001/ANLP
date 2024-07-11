@@ -41,8 +41,9 @@ def train_SRL():
         print(f"Number of parameters in the classifiers: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
         train(model, train_loader, val_loader, test_loader,
-            epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=1,
-            role_threshold=0.5, group_roles=False, top=False, noise=0.1,
+            epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=0,
+            role_threshold=0.5, group_roles=True, top=False, 
+            noise=0.2, noise_prob=0.2,
             device='cuda', name=test, dataset=dataset)
         
         # Save the model
