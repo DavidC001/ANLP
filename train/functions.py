@@ -660,9 +660,18 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
         noise += noise_increment
         noise_prob += noise_prob_increment
 
-    final_result = eval_step(model, train_loader, l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, device=device)
-    final_val_result = eval_step(model, val_loader, l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, device=device)
-    test_result = eval_step(model, test_loader, l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, device=device)
+    final_result = eval_step(model, train_loader, 
+                             l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
+                             group_roles=group_roles, role_threshold=role_threshold,
+                             device=device)
+    final_val_result = eval_step(model, val_loader, 
+                             l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
+                             group_roles=group_roles, role_threshold=role_threshold,
+                             device=device)
+    test_result = eval_step(model, test_loader, 
+                             l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
+                             group_roles=group_roles, role_threshold=role_threshold,
+                             device=device)
     print_and_log_results(final_result, tensorboard, epochs, "Train", dataset)
     print_and_log_results(final_val_result, tensorboard, epochs, "Val", dataset)
     print_and_log_results(test_result, tensorboard, epochs, "Test", dataset)
