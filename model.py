@@ -55,6 +55,7 @@ class SRL_MODEL(nn.Module):
                  combine_method='mean', norm_layer=False,
                  proj_dim=0, relation_proj=False,
                  role_layers=[], role_LSTM=False, train_encoder=True,
+                 dropout_prob=0,
                  device='cuda'):
         '''
             Initialize the model
@@ -125,6 +126,9 @@ class SRL_MODEL(nn.Module):
             # Instantiate a LayerNorm layer
             self.norm_layer = nn.LayerNorm(role_classifer_input_size)
 
+        # dropout layer
+        self.dropout = nn.Dropout(dropout_prob)
+
         # Initialize the module for the role classifier
         self.role_LSTM = role_LSTM
         if not role_LSTM:
@@ -164,7 +168,8 @@ class SRL_MODEL(nn.Module):
         # Apply the reduction if needed
         if self.rel_class_reduction and self.dim_reduction:
             hidden_states = self.rel_reduction(hidden_states)
-            
+            hidden_states = self.dropout(hidden_states)
+        
         batch_size, seq_len, hidden_size = hidden_states.size()
 
         # Extract the first hidden state for each word
@@ -229,11 +234,11 @@ class SRL_MODEL(nn.Module):
                 if pos is not None and pos < seq_len:
                     # get the hidden state of the relation and apply the reduction if needed
                     relation_hidden_state = hidden_states[i, pos]
-                    relation_hidden_state = self.rel_reduction(relation_hidden_state) if self.dim_reduction>0 else relation_hidden_state
+                    relation_hidden_state = self.dropout(self.rel_reduction(relation_hidden_state)) if self.dim_reduction>0 else relation_hidden_state
                     
                     # get the hidden states of the words and apply the reduction if needed
                     word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
-                    word_hidden_states = self.word_reduction(word_hidden_states) if self.dim_reduction>0 else word_hidden_states
+                    word_hidden_states = self.dropout(self.word_reduction(word_hidden_states)) if self.dim_reduction>0 else word_hidden_states
 
                     # Combine the hidden states based on the method
                     if(self.combine_method == 'mean'):
@@ -251,6 +256,7 @@ class SRL_MODEL(nn.Module):
                 relation_hidden_states = torch.stack(relation_hidden_states)
                 relation_hidden_states = self.norm_layer(relation_hidden_states) if self.norm else relation_hidden_states
 
+                relation_hidden_states = self.dropout(relation_hidden_states)
                 role_logits = self.role_classifier(relation_hidden_states)
                 
                 results.append(role_logits)
@@ -265,9 +271,11 @@ class SRL_MODEL(nn.Module):
 
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
         hidden_states = outputs.last_hidden_state
+        hidden_states = self.dropout(hidden_states)
 
         # Compute the logits for the relational classifier
         relational_class_input = self.rel_reduction(hidden_states) if (self.dim_reduction and self.rel_class_reduction) else hidden_states
+        relational_class_input = self.dropout(relational_class_input)
         relational_logits = self.relational_classifier(relational_class_input).squeeze(-1)
         
         # Compute the logits for the senses classifier

@@ -89,7 +89,8 @@ tests = {
             "norm_layer": True,
             "proj_dim": 100,
             "relation_proj": True,
-            "train_encoder": True
+            "train_encoder": True,
+            "dropout_prob": 0.1,
         },
 }
 ```

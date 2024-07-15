@@ -15,9 +15,10 @@ def train_SRL():
             "combine_method": "gating", # how to combine the predicate and word representations
             "role_layers": [100], # hidden dimensions of the role classifier
             "norm_layer": True, # whether to apply layer normalization
-            "proj_dim": 100, # dimension of the projection layer
+            "proj_dim": 200, # dimension of the projection layer
             "relation_proj": True, # whether to project the relation representation
-            "train_encoder": True # whether to train the encoder
+            "train_encoder": True, # whether to train the encoder
+            "dropout_prob": 0.2, # dropout rate
         },
     }
 
@@ -43,7 +44,7 @@ def train_SRL():
         train(model, train_loader, val_loader, test_loader,
             epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=0,
             role_threshold=0.5, group_roles=True, top=False, 
-            noise=0.2, noise_prob=0.2,
+            noise=0.1, noise_prob=0.2,
             device='cuda', name=test, dataset=dataset)
         
         # Save the model
