@@ -30,7 +30,7 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
     # Use BCEWithLogitsLoss with pos_weight
     loss_function_relation_weighted = nn.BCEWithLogitsLoss(pos_weight=pos_weight_rel.to(logits.device), reduction='mean')
     rand_tensor = torch.rand_like(labels)**2 * -(labels*2-1) * noise
-    mask_tensor = torch.rand_like(labels) < noise_prob
+    mask_tensor = torch.rand_like(labels) < noise_prob or labels == 1
     labels_with_noise = labels + rand_tensor * mask_tensor.float()
     relational_loss = loss_function_relation_weighted(logits, labels_with_noise)
 
@@ -63,7 +63,7 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, n
     
     criterion = nn.CrossEntropyLoss(reduction='mean')
     rand_tensor = torch.rand_like(labels)**2 * -(labels*2-1) * noise
-    mask_tensor = torch.rand_like(labels) < noise_prob
+    mask_tensor = torch.rand_like(labels) < noise_prob or labels == 1
     labels_with_noise = labels + rand_tensor * mask_tensor.float()
     loss = criterion(logits, labels_with_noise)
     # loss /= logits.size(0)
@@ -218,7 +218,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
         pos_weight = torch.tensor([max(1,(roles_labels[:,i] == 0).float().sum().item()) / max(1,(roles_labels[:,i] == 1).float().sum().item()) for i in range(roles_labels.shape[1])]).to(roles_logits.device)
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
         rand_tensor = torch.rand_like(roles_labels)**2 * -(roles_labels*2-1) * noise
-        mask_tensor = torch.rand_like(roles_labels) < noise_prob
+        mask_tensor = torch.rand_like(roles_labels) < noise_prob or roles_labels == 1
         role_labels_with_noise = roles_labels + rand_tensor * mask_tensor.float()
         role_loss = criterion(roles_logits, role_labels_with_noise).view(-1, roles_labels.shape[-1]).mean(0).sum()
     else:
