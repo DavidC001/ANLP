@@ -90,6 +90,7 @@ tests = {
             "proj_dim": 100,
             "relation_proj": True,
             "train_encoder": True,
+            "train_embedding_layer": False,
             "dropout_prob": 0.1,
         },
 }

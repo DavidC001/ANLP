@@ -54,7 +54,8 @@ class SRL_MODEL(nn.Module):
     def __init__(self, model_name, sense_classes, role_classes, 
                  combine_method='mean', norm_layer=False,
                  proj_dim=0, relation_proj=False,
-                 role_layers=[], role_LSTM=False, train_encoder=True,
+                 role_layers=[], role_LSTM=False, 
+                 train_encoder=True, train_embedding_layer=True,
                  dropout_prob=0,
                  device='cuda'):
         '''
@@ -71,11 +72,19 @@ class SRL_MODEL(nn.Module):
                 role_layers (list): the sizes of the hidden layers of the role classifier
                 role_LSTM (bool): whether to use an LSTM for the role classification (note: role_layers will be ignored, only its length is used)
                 train_encoder (bool): whether to train the encoder model
+                train_embedding_layer (bool): whether to train the embedding layer of the encoder model
                 device (str): the device to use for the model
         
         '''
         super(SRL_MODEL, self).__init__()
         self.bert = AutoModel.from_pretrained(model_name)
+
+        # do not train embedding layers
+        if not train_embedding_layer:
+            for param in self.bert.embeddings.parameters():
+                param.requires_grad = False
+
+        # breakpoint()
 
         # Freeze the encoder if needed
         if not train_encoder:

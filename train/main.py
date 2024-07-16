@@ -18,6 +18,7 @@ def train_SRL():
             "proj_dim": 200, # dimension of the projection layer
             "relation_proj": True, # whether to project the relation representation
             "train_encoder": True, # whether to train the encoder
+            "train_embedding_layer": False, # whether to train the embedding layer
             "dropout_prob": 0.2, # dropout rate
         },
     }
