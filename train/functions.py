@@ -5,6 +5,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
+from model import SRL_MODEL
 
 
 def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, noise_prob:float = 0.2):
@@ -30,7 +31,7 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
     # Use BCEWithLogitsLoss with pos_weight
     loss_function_relation_weighted = nn.BCEWithLogitsLoss(pos_weight=pos_weight_rel.to(logits.device), reduction='mean')
     rand_tensor = torch.rand_like(labels)**2 * -(labels*2-1) * noise
-    mask_tensor = torch.rand_like(labels) < noise_prob or labels == 1
+    mask_tensor = (torch.rand_like(labels) < noise_prob) + (labels == 1)
     labels_with_noise = labels + rand_tensor * mask_tensor.float()
     relational_loss = loss_function_relation_weighted(logits, labels_with_noise)
 
@@ -63,7 +64,7 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, n
     
     criterion = nn.CrossEntropyLoss(reduction='mean')
     rand_tensor = torch.rand_like(labels)**2 * -(labels*2-1) * noise
-    mask_tensor = torch.rand_like(labels) < noise_prob or labels == 1
+    mask_tensor = (torch.rand_like(labels) < noise_prob) or (labels == 1)
     labels_with_noise = labels + rand_tensor * mask_tensor.float()
     loss = criterion(logits, labels_with_noise)
     # loss /= logits.size(0)
@@ -181,13 +182,17 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
             roles_labels = torch.cat((roles_labels, role_labels.view(-1, role_labels.shape[-1])), dim=0)
         else:
             # Calculate positive weight for role classification for each role
-            pos_weight = torch.tensor([max(1,(role_labels[:,:,i] == 0).float().sum().item()) / max(1,(role_labels[:,:,i] == 1).float().sum().item()) for i in range(role_labels.shape[2])]).to(role_logits.device)
+            pos_weight = torch.tensor([
+                                        max(1,(role_labels[:,:,i] == 0).float().sum().item()) / 
+                                       max((role_labels[:,:,i] == 0).float().sum().item()/10,(role_labels[:,:,i] == 1).float().sum().item()) 
+                                       for i in range(role_labels.shape[2])
+                                    ]).to(role_logits.device)
             # Have all the roles to have the same weight for the loss
 
             # Weighted Binary Cross-Entropy Loss
             criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
             rand_tensor = torch.rand_like(role_labels)**2 * -(role_labels*2-1) * noise
-            mask_tensor = torch.rand_like(role_labels) > 0.7
+            mask_tensor = (torch.rand_like(role_labels) < noise_prob) + (role_labels == 1)
             role_labels_with_noise = role_labels + rand_tensor * mask_tensor.float()
             loss = criterion(role_logits, role_labels_with_noise).view(-1, role_labels.shape[-1]).mean(0).sum()
             role_loss += loss
@@ -215,10 +220,14 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
 
     # compute loss for each role
     if group:
-        pos_weight = torch.tensor([max(1,(roles_labels[:,i] == 0).float().sum().item()) / max(1,(roles_labels[:,i] == 1).float().sum().item()) for i in range(roles_labels.shape[1])]).to(roles_logits.device)
+        pos_weight = torch.tensor([
+                max(1,(roles_labels[:,i] == 0).float().sum().item()) / 
+                max((roles_labels[:,i] == 0).float().sum().item()/10,(roles_labels[:,i] == 1).float().sum().item())
+                for i in range(roles_labels.shape[1])
+            ]).to(roles_logits.device)
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
         rand_tensor = torch.rand_like(roles_labels)**2 * -(roles_labels*2-1) * noise
-        mask_tensor = torch.rand_like(roles_labels) < noise_prob or roles_labels == 1
+        mask_tensor = (torch.rand_like(roles_labels) < noise_prob) + (roles_labels == 1)
         role_labels_with_noise = roles_labels + rand_tensor * mask_tensor.float()
         role_loss = criterion(roles_logits, role_labels_with_noise).view(-1, roles_labels.shape[-1]).mean(0).sum()
     else:
@@ -232,7 +241,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
     
     return role_loss, role_accuracy, role_precision, role_recall, role_f1
 
-def loss(model: nn.Module,
+def loss(model: SRL_MODEL,
          rel_mask: torch.Tensor, rel_logits: torch.Tensor, rel_labels: torch.Tensor, 
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
          role_logits: torch.Tensor, role_labels: torch.Tensor, group_roles:bool = False, role_threshold:float = 0.5,
@@ -300,9 +309,9 @@ def loss(model: nn.Module,
 
 
 
-def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, 
+def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, 
                F1_loss_power: float, group_roles:bool = False, role_threshold:float = 0.5, 
-               noise:float = 0.2, noise_prob:float = 0.2,
+               noise:float = 0.2, noise_prob:float = 0.2, random_sostitution_prob:float = 0,
                device:str="cuda"):
     """
         Perform a training step
@@ -317,6 +326,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
             role_threshold: The threshold for the role classification
             noise: The noise to add to the labels
             noise_prob: The probability of adding noise
+            random_sostitution_prob: The probability of randomly substituting a token with UNK
             device: The device to use
 
         Returns:
@@ -364,6 +374,13 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         optimizer.zero_grad()
 
         # breakpoint()
+
+        # random sobstitution
+        if random_sostitution_prob > 0:
+            rand_tensor = torch.rand(input_ids.shape).to(input_ids.device)
+            mask_tensor = rand_tensor < (random_sostitution_prob * attention_masks)
+            input_ids[mask_tensor] = model.tokenizer.unk_token_id
+            # breakpoint()
 
         # get the logits from the model
         relational_logits, senses_logits, role_results = model(input_ids, attention_masks, relations, word_ids)
@@ -436,7 +453,7 @@ def train_step(model: nn.Module, train_loader: DataLoader, optimizer: optim.Opti
         "role_accuracy": role_accuracy, "role_precision": role_precision, "role_recall": role_recall, "role_f1": role_f1
     }
 
-def eval_step(model: nn.Module, val_loader: DataLoader, l2_lambda: float, F1_loss_power: float, 
+def eval_step(model: SRL_MODEL, val_loader: DataLoader, l2_lambda: float, F1_loss_power: float, 
               top: bool=False, group_roles:bool = False, role_threshold:float = 0.5,
               device:str="cuda"):
     """
@@ -595,9 +612,9 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
     tensorboard.add_scalar(f'Role F1/{tag}', result['role_f1'], epoch)
     
 
-def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
+def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
         epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5, F1_loss_power: float=2, 
-        noise:float = 0.2, noise_prob:float = 0.2,
+        noise:float = 0, noise_prob:float = 0, random_sostitution_prob:float = 0,
         role_threshold:float = 0.5, group_roles:bool = False, top:bool = False,
         device: torch.device="cuda", name: str="SRL", dataset: str="UP"):
     """
@@ -615,6 +632,7 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
             F1_loss_power: The power for the rescaling using the F1 score
             noise: Final noise to add to the labels, will be incremented linearly from 0
             noise_prob: Final probability of adding noise to the labels, will be incremented linearly from 0
+            random_sostitution_prob: The probability of randomly substituting a token with UNK
             role_threshold: The threshold for the role classification
             group_roles: Wether to group the roles to compute the loss
             top: Wether to use top selection for the predicted spans in the role classification for evaluation
@@ -640,7 +658,7 @@ def train(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, te
                                   train_loader=train_loader, optimizer=optimizer, 
                                   l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
                                   group_roles=group_roles, role_threshold=role_threshold, 
-                                  noise=noise, noise_prob=noise_prob,
+                                  noise=noise, noise_prob=noise_prob, random_sostitution_prob=random_sostitution_prob,
                                   device=device)
         val_result = eval_step(model=model, 
                                val_loader=val_loader, 

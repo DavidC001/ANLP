@@ -45,7 +45,7 @@ def train_SRL():
         train(model, train_loader, val_loader, test_loader,
             epochs=10, init_lr=0.001, lr_encoder=1e-5, l2_lambda=1e-5, F1_loss_power=0,
             role_threshold=0.5, group_roles=True, top=False, 
-            noise=0.1, noise_prob=0.2,
+            noise=0.1, noise_prob=0.2, random_sostitution_prob=0.1,
             device='cuda', name=test, dataset=dataset)
         
         # Save the model
