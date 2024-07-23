@@ -30,8 +30,8 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
 
     # Use BCEWithLogitsLoss with pos_weight
     loss_function_relation_weighted = nn.BCEWithLogitsLoss(pos_weight=pos_weight_rel.to(logits.device), reduction='mean')
-    rand_tensor = torch.rand_like(labels)**2 * -(labels*2-1) * noise
-    mask_tensor = (torch.rand_like(labels) < noise_prob) + (labels == 1)
+    rand_tensor = torch.rand_like(labels)**2 * (-labels) * noise
+    mask_tensor = (torch.rand_like(labels) < noise_prob)
     labels_with_noise = labels + rand_tensor * mask_tensor.float()
     relational_loss = loss_function_relation_weighted(logits, labels_with_noise)
 
@@ -63,8 +63,8 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, n
     # Compute loss for sense classification
     
     criterion = nn.CrossEntropyLoss(reduction='mean')
-    rand_tensor = torch.rand_like(labels)**2 * -(labels*2-1) * noise
-    mask_tensor = (torch.rand_like(labels) < noise_prob) or (labels == 1)
+    rand_tensor = torch.rand_like(labels)**2 * (-labels) * noise
+    mask_tensor = (torch.rand_like(labels) < noise_prob)
     labels_with_noise = labels + rand_tensor * mask_tensor.float()
     loss = criterion(logits, labels_with_noise)
     # loss /= logits.size(0)
@@ -191,8 +191,8 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
 
             # Weighted Binary Cross-Entropy Loss
             criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
-            rand_tensor = torch.rand_like(role_labels)**2 * -(role_labels*2-1) * noise
-            mask_tensor = (torch.rand_like(role_labels) < noise_prob) + (role_labels == 1)
+            rand_tensor = torch.rand_like(role_labels)**2 * (-role_labels) * noise
+            mask_tensor = (torch.rand_like(role_labels) < noise_prob)
             role_labels_with_noise = role_labels + rand_tensor * mask_tensor.float()
             loss = criterion(role_logits, role_labels_with_noise).view(-1, role_labels.shape[-1]).mean(0).sum()
             role_loss += loss
