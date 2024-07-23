@@ -7,6 +7,18 @@ import torch.optim as optim
 from tqdm import tqdm
 from model import SRL_MODEL
 
+def smooth_labels(labels: torch.Tensor, epsilon: float=0.1):
+    """
+        Smooth the labels using label smoothing
+
+        Parameters:
+            labels: The labels
+            epsilon: The epsilon for the label smoothing
+
+        Returns:
+            The smoothed labels
+    """
+    return labels * (1 - epsilon) + (epsilon / labels.shape[-1])
 
 def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, noise_prob:float = 0.2):
     """
@@ -30,9 +42,8 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
 
     # Use BCEWithLogitsLoss with pos_weight
     loss_function_relation_weighted = nn.BCEWithLogitsLoss(pos_weight=pos_weight_rel.to(logits.device), reduction='mean')
-    rand_tensor = torch.rand_like(labels)**2 * (-labels*2+1) * noise
-    mask_tensor = (torch.rand_like(labels) < noise_prob)
-    labels_with_noise = labels + rand_tensor * mask_tensor.float()
+    # label smoothing
+    labels_with_noise = smooth_labels(labels.float(), epsilon=noise)
     relational_loss = loss_function_relation_weighted(logits, labels_with_noise)
 
     # Compute accuracy and F1 score for relational classification
@@ -63,9 +74,8 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, n
     # Compute loss for sense classification
     
     criterion = nn.CrossEntropyLoss(reduction='mean')
-    rand_tensor = torch.rand_like(labels)**2 * (-labels*2+1) * noise
-    mask_tensor = (torch.rand_like(labels) < noise_prob)
-    labels_with_noise = labels + rand_tensor * mask_tensor.float()
+    # label smoothing
+    labels_with_noise = smooth_labels(labels.float(), epsilon=noise)
     loss = criterion(logits, labels_with_noise)
     # loss /= logits.size(0)
 
@@ -191,9 +201,8 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
 
             # Weighted Binary Cross-Entropy Loss
             criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
-            rand_tensor = torch.rand_like(role_labels)**2 * (-role_labels*2+1) * noise
-            mask_tensor = (torch.rand_like(role_labels) < noise_prob)
-            role_labels_with_noise = role_labels + rand_tensor * mask_tensor.float()
+            # label smoothing
+            role_labels_with_noise = smooth_labels(role_labels, epsilon=noise)
             loss = criterion(role_logits, role_labels_with_noise).view(-1, role_labels.shape[-1]).mean(0).sum()
             role_loss += loss
 
@@ -226,9 +235,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
                 for i in range(roles_labels.shape[1])
             ]).to(roles_logits.device)
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
-        rand_tensor = torch.rand_like(roles_labels)**2 * -(roles_labels*2-1) * noise
-        mask_tensor = (torch.rand_like(roles_labels) < noise_prob) + (roles_labels == 1)
-        role_labels_with_noise = roles_labels + rand_tensor * mask_tensor.float()
+        role_labels_with_noise = smooth_labels(roles_labels, epsilon=noise)
         role_loss = criterion(roles_logits, role_labels_with_noise).view(-1, roles_labels.shape[-1]).mean(0).sum()
     else:
         role_loss /= len(results)
