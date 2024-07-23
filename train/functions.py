@@ -184,7 +184,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
             # Calculate positive weight for role classification for each role
             pos_weight = torch.tensor([
                                         max(1,(role_labels[:,:,i] == 0).float().sum().item()) / 
-                                       max((role_labels[:,:,i] == 0).float().sum().item()/10,(role_labels[:,:,i] == 1).float().sum().item(),1) 
+                                       max((role_labels[:,:,i] == 0).float().sum().item()/100,(role_labels[:,:,i] == 1).float().sum().item(),1) 
                                        for i in range(role_labels.shape[2])
                                     ]).to(role_logits.device)
             # Have all the roles to have the same weight for the loss
@@ -222,7 +222,7 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
     if group:
         pos_weight = torch.tensor([
                 max(1,(roles_labels[:,i] == 0).float().sum().item()) / 
-                max((roles_labels[:,i] == 0).float().sum().item()/10,(roles_labels[:,i] == 1).float().sum().item())
+                max((roles_labels[:,i] == 0).float().sum().item()/100,(roles_labels[:,i] == 1).float().sum().item(),1)
                 for i in range(roles_labels.shape[1])
             ]).to(roles_logits.device)
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
