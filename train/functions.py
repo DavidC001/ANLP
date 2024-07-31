@@ -20,7 +20,7 @@ def smooth_labels(labels: torch.Tensor, epsilon: float=0.1):
     """
     return labels * (1 - epsilon) + (epsilon / labels.shape[-1])
 
-def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, noise_prob:float = 0.2):
+def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2):
     """
         Compute loss for relational classification
 
@@ -29,7 +29,6 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
             logits: The logits from the model
             labels: The labels for the relations
             noise: The noise to add to the labels
-            noise_prob: The probability of adding noise
 
         Returns:
             The loss, accuracy, precision, recall, and f1 score for the relation classification
@@ -58,7 +57,7 @@ def relation_loss(mask: torch.Tensor, logits: torch.Tensor, labels: torch.Tensor
 
     return relational_loss, rel_accuracy, rel_precision, rel_recall, rel_f1
 
-def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, noise_prob:float = 0.2):
+def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2):
     """
         Compute loss for sense classification
 
@@ -66,7 +65,6 @@ def senses_loss(logits: torch.Tensor, labels: torch.Tensor, noise:float = 0.2, n
             logits: The logits from the model
             labels: The labels for the senses
             noise: The noise to add to the labels
-            noise_prob: The probability of adding noise
 
         Returns:
             The loss, accuracy, precision, recall, and f1 score for the sense classification
@@ -156,7 +154,7 @@ def top_span(logits, threshold=0.5):
 
 
 def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool = False, group:bool = False, 
-              threshold:float = 0.5, noise:float = 0.2, noise_prob:float = 0.2):
+              threshold:float = 0.5, noise:float = 0.2):
     """
         Compute loss for role classification
 
@@ -167,7 +165,6 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
             group: Wether to group the roles to compute the loss
             threshold: The threshold for the role classification
             noise: The noise to add to the labels
-            noise_prob: The probability of adding noise
 
         Returns:
             The loss, accuracy, precision, recall, and f1 score for the role classification
@@ -253,7 +250,7 @@ def loss(model: SRL_MODEL,
          sense_logits: torch.Tensor, sense_labels: torch.Tensor, 
          role_logits: torch.Tensor, role_labels: torch.Tensor, group_roles:bool = False, role_threshold:float = 0.5,
          l2_lambda: float=0.001, weight_rel: float=1, weight_sense: float=1, weight_role: float=1, F1_loss_power: float=2, 
-         noise:float = 0.2, noise_prob:float = 0.2,
+         noise:float = 0.2,
          top:bool = False
          ):
     """
@@ -276,7 +273,6 @@ def loss(model: SRL_MODEL,
             weight_role: The weight for the role classification
             F1_loss_power: The power for the rescaling using the F1 score
             noise: The noise to add to the labels
-            noise_prob: The probability of adding noise
             top: Wether to use top selection for the predicted spans
 
         Returns:
@@ -284,10 +280,10 @@ def loss(model: SRL_MODEL,
     """
     
     # Compute loss for each task
-    rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels, noise, noise_prob)
-    # sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels, noise, noise_prob)
+    rel_loss, rel_accuracy, rel_precision, rel_recall, rel_f1 = relation_loss(rel_mask, rel_logits, rel_labels, noise)
+    # sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = senses_loss(sense_logits, sense_labels, noise)
     sense_loss, sense_acc, sense_precision, sense_recall, sense_f1 = torch.tensor(0), 0, 0, 0, 0
-    rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels, top, group_roles, role_threshold, noise, noise_prob)
+    rol_loss, role_accuracy, role_precision, role_recall, role_f1 = role_loss(role_logits, role_labels, top, group_roles, role_threshold, noise)
 
     if rel_f1 > 0.9:
         weight_rel /= rel_f1**F1_loss_power
@@ -318,7 +314,7 @@ def loss(model: SRL_MODEL,
 
 def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Optimizer, l2_lambda: float, 
                F1_loss_power: float, group_roles:bool = False, role_threshold:float = 0.5, 
-               noise:float = 0.2, noise_prob:float = 0.2, random_sostitution_prob:float = 0,
+               noise:float = 0.2, random_sostitution_prob:float = 0,
                device:str="cuda"):
     """
         Perform a training step
@@ -332,7 +328,6 @@ def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Opti
             group_roles: Wether to group the roles to compute the loss
             role_threshold: The threshold for the role classification
             noise: The noise to add to the labels
-            noise_prob: The probability of adding noise
             random_sostitution_prob: The probability of randomly substituting a token with UNK
             device: The device to use
 
@@ -397,8 +392,7 @@ def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Opti
                          rel_mask=relation_label_masks, rel_logits=relational_logits, rel_labels=relation_labels, 
                          sense_logits=senses_logits, sense_labels=senses_labels, 
                          role_logits=role_results, role_labels=role_labels, group_roles=group_roles, role_threshold=role_threshold, 
-                         noise=noise, noise_prob=noise_prob,
-                         l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
+                         noise=noise, l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
 
         loss_dict['loss'].backward()
         optimizer.step()
@@ -523,8 +517,7 @@ def eval_step(model: SRL_MODEL, val_loader: DataLoader, l2_lambda: float, F1_los
                              sense_logits=senses_logits, sense_labels=senses_labels, 
                              role_logits=role_results, role_labels=role_labels, group_roles=group_roles, role_threshold=role_threshold,
                              l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power, 
-                             noise=0, noise_prob=0,
-                             top = top)
+                             noise=0, top = top)
 
             total_loss += loss_dict['loss'].item()
 
@@ -621,7 +614,7 @@ def print_and_log_results(result: dict, tensorboard: SummaryWriter, epoch: int, 
 
 def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
         epochs: int=100, init_lr: float=1e-3, lr_encoder: float=1e-5, l2_lambda: float=1e-5, F1_loss_power: float=2, 
-        noise:float = 0, noise_prob:float = 0, random_sostitution_prob:float = 0,
+        noise:float = 0, random_sostitution_prob:float = 0,
         role_threshold:float = 0.5, group_roles:bool = False, top:bool = False,
         device: torch.device="cuda", name: str="SRL", dataset: str="UP"):
     """
@@ -638,7 +631,6 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
             l2_lambda: The lambda for the L2 regularization
             F1_loss_power: The power for the rescaling using the F1 score
             noise: Final noise to add to the labels, will be incremented linearly from 0
-            noise_prob: Final probability of adding noise to the labels, will be incremented linearly from 0
             random_sostitution_prob: The probability of randomly substituting a token with UNK
             role_threshold: The threshold for the role classification
             group_roles: Wether to group the roles to compute the loss
@@ -656,16 +648,14 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
 
     noise_increment = noise / epochs-1
-    noise_prob_increment = noise_prob / epochs-1
     noise = 0
-    noise_prob = 0
 
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model=model, 
                                   train_loader=train_loader, optimizer=optimizer, 
                                   l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
                                   group_roles=group_roles, role_threshold=role_threshold, 
-                                  noise=noise, noise_prob=noise_prob, random_sostitution_prob=random_sostitution_prob,
+                                  noise=noise, random_sostitution_prob=random_sostitution_prob,
                                   device=device)
         val_result = eval_step(model=model, 
                                val_loader=val_loader, 
@@ -683,7 +673,6 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
 
         scheduler.step()
         noise += noise_increment
-        noise_prob += noise_prob_increment
 
     final_result = eval_step(model, train_loader, 
                              l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
