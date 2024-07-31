@@ -161,7 +161,7 @@ class SRL_MODEL(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
 
         if role_RNN:
-            self.RNN_layer = RNNLayer(role_size, role_size, 1, RNN_type)
+            self.RNN_layer = RNNLayer(hidden_size, hidden_size, 1, RNN_type)
         
         # Initialize the module for the role classifier
         self.role_RNN = role_RNN
