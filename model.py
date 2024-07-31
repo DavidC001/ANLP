@@ -36,25 +36,42 @@ class GatedCombination(nn.Module):
         
         return gating_scores * transformed + (1 - gating_scores) * word_hidden_states
 
-class LSTMClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes):
-        super(LSTMClassifier, self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, num_classes)
+class RNNLayer(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, type='LSTM'):
+        '''
+            Initialize the RNN layer
+
+            Parameters:
+                input_size (int): the size of the input
+                hidden_size (int): the size of the hidden states
+                num_layers (int): the number of layers
+                type (str): the type of RNN to use, can be 'LSTM', 'GRU' or 'RNN'
+        '''
+        super(RNNLayer, self).__init__()
+        models = {
+            'LSTM': nn.LSTM,
+            'GRU': nn.GRU,
+            'RNN': nn.RNN
+        }
+        self.rnn = models[type](input_size, hidden_size, num_layers, batch_first=True)
+        self.norm = nn.LayerNorm(hidden_size)
 
     def forward(self, x):
         
-        # Forward propagate LSTM
-        out, _ = self.lstm(x)  # out: tensor of shape (batch_size, seq_length, hidden_size)
-        # Decode the hidden states for each word
-        out = self.fc(out)
+        # Forward propagate RNN
+        out, _ = self.rnn(x)  # out: tensor of shape (batch_size, seq_length, hidden_size)
+        # Residual connection
+        out = out + x
+        # Normalize
+        out = self.norm(out)
+
         return out
 
 class SRL_MODEL(nn.Module):
     def __init__(self, model_name, sense_classes, role_classes, 
                  combine_method='mean', norm_layer=False,
                  proj_dim=0, relation_proj=False,
-                 role_layers=[], role_LSTM=False, 
+                 role_layers=[], role_RNN=False, RNN_type='LSTM',
                  train_encoder=True, train_embedding_layer=True,
                  dropout_prob=0,
                  device='cuda'):
@@ -70,7 +87,8 @@ class SRL_MODEL(nn.Module):
                 proj_dim (int): the size of the hidden states after the projection
                 relation_proj (bool): whether to project the hidden states before the relational classifier
                 role_layers (list): the sizes of the hidden layers of the role classifier
-                role_LSTM (bool): whether to use an LSTM for the role classification (note: role_layers will be ignored, only its length is used)
+                role_RNN (bool): whether to use a recurrent network for the role classification
+                RNN_type (str): the type of RNN to use in the role classifier
                 train_encoder (bool): whether to train the encoder model
                 train_embedding_layer (bool): whether to train the embedding layer of the encoder model
                 device (str): the device to use for the model
@@ -110,7 +128,11 @@ class SRL_MODEL(nn.Module):
         if self.dim_reduction:
             role_size = proj_dim
             self.rel_reduction = nn.Sequential(nn.Linear(hidden_size, proj_dim), nn.ReLU())
+            self.linear_rel_reduction = nn.Linear(hidden_size, proj_dim)
+            self.rel_reduction_norm = nn.LayerNorm(proj_dim)
             self.word_reduction = nn.Sequential(nn.Linear(hidden_size, proj_dim), nn.ReLU())
+            self.linear_word_reduction = nn.Linear(hidden_size, proj_dim)
+            self.word_reduction_norm = nn.LayerNorm(proj_dim)
 
         # Initialize the module for the relational classifier
         self.rel_class_reduction = relation_proj
@@ -138,22 +160,19 @@ class SRL_MODEL(nn.Module):
         # dropout layer
         self.dropout = nn.Dropout(dropout_prob)
 
+        if role_RNN:
+            self.RNN_layer = RNNLayer(role_size, role_size, 1, RNN_type)
+        
         # Initialize the module for the role classifier
-        self.role_LSTM = role_LSTM
-        if not role_LSTM:
-            role_layers = [role_classifer_input_size] + role_layers + [role_classes]
-            self.role_layers = []
-            for i in range(len(role_layers) - 1):
-                self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
-                if i < len(role_layers) - 2:
-                    self.role_layers.append(nn.ReLU())
-            self.role_classifier = nn.Sequential(*self.role_layers)
-        else:
-            if len(role_layers) > 0:
-                print("Warning: role_layers values will be ignored when using an LSTM for the role classifier")
-            # hoping to make them more stable
-            self.role_classifier = LSTMClassifier(role_classifer_input_size, role_classes, max(1,len(role_layers)), role_classes)
-
+        self.role_RNN = role_RNN
+        role_layers = [role_classifer_input_size] + role_layers + [role_classes]
+        self.role_layers = []
+        for i in range(len(role_layers) - 1):
+            self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
+            if i < len(role_layers) - 2:
+                self.role_layers.append(nn.ReLU())
+        self.role_classifier = nn.Sequential(*self.role_layers)
+        
         # Initialize the tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
@@ -176,7 +195,8 @@ class SRL_MODEL(nn.Module):
         """
         # Apply the reduction if needed
         if self.rel_class_reduction and self.dim_reduction:
-            hidden_states = self.rel_reduction(hidden_states)
+            hidden_states = self.rel_reduction(hidden_states) + self.linear_rel_reduction(hidden_states)
+            hidden_states = self.rel_reduction_norm(hidden_states)
             hidden_states = self.dropout(hidden_states)
         
         batch_size, seq_len, hidden_size = hidden_states.size()
@@ -225,6 +245,10 @@ class SRL_MODEL(nn.Module):
         """
         batch_size, seq_len, hidden_size = hidden_states.size()
 
+        if self.role_RNN:
+            hidden_states = self.RNN_layer(hidden_states)
+            hidden_states = self.dropout(hidden_states)
+
         # Extract the first hidden state for each word
         first_hidden_states = torch.zeros((batch_size, max([max(words_id) for words_id in word_ids])+1, hidden_size)).to(hidden_states.device)
         prev_word_id = -1
@@ -243,11 +267,17 @@ class SRL_MODEL(nn.Module):
                 if pos is not None and pos < seq_len:
                     # get the hidden state of the relation and apply the reduction if needed
                     relation_hidden_state = hidden_states[i, pos]
-                    relation_hidden_state = self.dropout(self.rel_reduction(relation_hidden_state)) if self.dim_reduction>0 else relation_hidden_state
-                    
+                    if self.dim_reduction > 0:
+                        relation_hidden_state = self.rel_reduction(relation_hidden_state) + self.linear_rel_reduction(relation_hidden_state)
+                        relation_hidden_state = self.rel_reduction_norm(relation_hidden_state)
+                    relation_hidden_state = self.dropout(relation_hidden_state)
+
                     # get the hidden states of the words and apply the reduction if needed
                     word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
-                    word_hidden_states = self.dropout(self.word_reduction(word_hidden_states)) if self.dim_reduction>0 else word_hidden_states
+                    if self.dim_reduction > 0:
+                        word_hidden_states = self.word_reduction(word_hidden_states) + self.linear_word_reduction(word_hidden_states)
+                        word_hidden_states = self.word_reduction_norm(word_hidden_states)
+                    word_hidden_states = self.dropout(word_hidden_states)
 
                     # Combine the hidden states based on the method
                     if(self.combine_method == 'mean'):

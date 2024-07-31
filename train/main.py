@@ -17,6 +17,8 @@ def train_SRL():
             "norm_layer": True, # whether to apply layer normalization
             "proj_dim": 200, # dimension of the projection layer
             "relation_proj": True, # whether to project the relation representation
+            "role_RNN": True, # whether to use a LSTM layer in the role classifier
+            "RNN_type": "GRU", # type of RNN layer
             "train_encoder": True, # whether to train the encoder
             "train_embedding_layer": False, # whether to train the embedding layer
             "dropout_prob": 0.2, # dropout rate
