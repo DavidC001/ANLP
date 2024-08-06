@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 from tqdm import tqdm
 from model import SRL_MODEL
+from grokfast import gradfilter_ma, gradfilter_ema
 
 def smooth_labels(labels: torch.Tensor, epsilon: float=0.1):
     """
@@ -337,6 +338,7 @@ def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Opti
 
     # Set the model to training mode
     model.train()
+    grads = None
 
     total_loss = 0
 
@@ -395,6 +397,7 @@ def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Opti
                          noise=noise, l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
 
         loss_dict['loss'].backward()
+        grads = gradfilter_ema(model, grads=grads) # alpha=alpha, lamb=lamb)
         optimizer.step()
 
         total_loss += loss_dict['loss'].item()
@@ -647,7 +650,8 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
         ], lr=init_lr, weight_decay=0)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
 
-    noise_increment = noise / epochs-1
+    noise_increment = noise / (epochs-1)
+    breakpoint()
     noise = 0
 
     for epoch in tqdm(range(epochs)):
