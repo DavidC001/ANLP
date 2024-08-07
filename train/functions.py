@@ -235,8 +235,8 @@ def role_loss(results: list[torch.Tensor], labels: list[torch.Tensor], top:bool 
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight, reduction='none')
         role_labels_with_noise = smooth_labels(roles_labels, epsilon=noise)
         role_loss = criterion(roles_logits, role_labels_with_noise).view(-1, roles_labels.shape[-1]).mean(0).sum()
-    else:
-        role_loss /= len(results)
+    
+    role_loss /= len(results)
     
     # breakpoint()
 
@@ -397,7 +397,9 @@ def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Opti
                          noise=noise, l2_lambda=l2_lambda, weight_rel=1, weight_sense=1, weight_role=1, F1_loss_power=F1_loss_power)
 
         loss_dict['loss'].backward()
+        # breakpoint()
         grads = gradfilter_ema(model, grads=grads) # alpha=alpha, lamb=lamb)
+        # breakpoint()
         optimizer.step()
 
         total_loss += loss_dict['loss'].item()
@@ -647,8 +649,8 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
     optimizer = optim.AdamW([
             {'params': model.bert.parameters(), 'lr': lr_encoder},
             {'params': [p[1] for p in model.named_parameters() if 'bert' not in p[0]], 'lr': init_lr}
-        ], lr=init_lr, weight_decay=0)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
+        ], lr=init_lr)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     noise_increment = noise / (epochs-1)
     # breakpoint()
