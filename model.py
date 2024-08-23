@@ -60,10 +60,10 @@ class RNNLayer(nn.Module):
         
         # Forward propagate RNN
         out, _ = self.rnn(x)  # out: tensor of shape (batch_size, seq_length, hidden_size)
-        # Residual connection
-        out = out + x
         # Normalize
         out = self.norm(out)
+        # Residual connection
+        out = out + x
 
         return out
 
