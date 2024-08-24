@@ -653,8 +653,10 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     noise_increment = noise / (epochs-1)
+    random_sostitution_prob_increment = random_sostitution_prob / (epochs-1)
     # breakpoint()
     noise = 0
+    random_sostitution_prob = 0
 
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model=model, 
@@ -679,6 +681,7 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
 
         scheduler.step()
         noise += noise_increment
+        random_sostitution_prob += random_sostitution_prob_increment
 
     final_result = eval_step(model, train_loader, 
                              l2_lambda=l2_lambda, F1_loss_power=F1_loss_power, 
