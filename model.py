@@ -53,13 +53,17 @@ class RNNLayer(nn.Module):
             'GRU': nn.GRU,
             'RNN': nn.RNN
         }
-        self.rnn = models[type](input_size, hidden_size, num_layers, batch_first=True)
+        self.rnn = models[type](input_size, hidden_size, num_layers, batch_first=True, bidirectional=True)
         self.norm = nn.LayerNorm(hidden_size)
 
     def forward(self, x):
         
         # Forward propagate RNN
         out, _ = self.rnn(x)  # out: tensor of shape (batch_size, seq_length, hidden_size)
+        # add forward and backward
+        shape = out.shape
+        out = out.view(shape[0], shape[1], 2, -1)
+        out = torch.sum(out, dim=2)
         # Normalize
         out = self.norm(out)
         # Residual connection
@@ -197,7 +201,6 @@ class SRL_MODEL(nn.Module):
         if self.rel_class_reduction and self.dim_reduction:
             hidden_states = self.rel_reduction(hidden_states) + self.linear_rel_reduction(hidden_states)
             hidden_states = self.rel_reduction_norm(hidden_states)
-            hidden_states = self.dropout(hidden_states)
         
         batch_size, seq_len, hidden_size = hidden_states.size()
 
@@ -210,6 +213,7 @@ class SRL_MODEL(nn.Module):
                 seen_words.add(word_id)
 
         # Compute the logits
+        first_hidden_states = self.dropout(first_hidden_states)
         relational_logits = self.relational_classifier(first_hidden_states).squeeze(-1)
         return relational_logits
 
@@ -247,7 +251,6 @@ class SRL_MODEL(nn.Module):
 
         if self.role_RNN:
             hidden_states = self.RNN_layer(hidden_states)
-            hidden_states = self.dropout(hidden_states)
 
         # Extract the first hidden state for each word
         first_hidden_states = torch.zeros((batch_size, max([max(words_id) for words_id in word_ids])+1, hidden_size)).to(hidden_states.device)
@@ -270,14 +273,14 @@ class SRL_MODEL(nn.Module):
                     if self.dim_reduction > 0:
                         relation_hidden_state = self.rel_reduction(relation_hidden_state) + self.linear_rel_reduction(relation_hidden_state)
                         relation_hidden_state = self.rel_reduction_norm(relation_hidden_state)
-                    relation_hidden_state = self.dropout(relation_hidden_state)
+                    # relation_hidden_state = self.dropout(relation_hidden_state)
 
                     # get the hidden states of the words and apply the reduction if needed
                     word_hidden_states = first_hidden_states[i, [word_id for word_id in set(word_ids[i]) if word_id != -1]]
                     if self.dim_reduction > 0:
                         word_hidden_states = self.word_reduction(word_hidden_states) + self.linear_word_reduction(word_hidden_states)
                         word_hidden_states = self.word_reduction_norm(word_hidden_states)
-                    word_hidden_states = self.dropout(word_hidden_states)
+                    # word_hidden_states = self.dropout(word_hidden_states)
 
                     # Combine the hidden states based on the method
                     if(self.combine_method == 'mean'):
