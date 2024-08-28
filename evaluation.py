@@ -100,7 +100,7 @@ def train_SRL(top=True, threshold=0.5):
             _,_,test,_,_ = get_dataloaders("datasets/preprocessed/", batch_size=32, shuffle=False, model_name=config["model_name"], dataset=dataset)
 
             result_dataset = evaluation_metrics_entire_dataset(model,test,top=top, threshold=threshold)
-            result_batch = eval_step(model, test, l2_lambda=0, F1_loss_power=0, top=top, role_threshold=threshold, device=device)
+            result_batch = eval_step(model, test, F1_loss_power=0, top=top, role_threshold=threshold, device=device)
 
             #convert the tensors to floats to be able to save the results to a json file
             for key, value in result_batch.items():
