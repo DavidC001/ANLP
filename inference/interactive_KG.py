@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModel
 from nltk.tokenize import TreebankWordTokenizer, sent_tokenize
 import json
 import sys
@@ -10,6 +10,7 @@ import dash_cytoscape as cyto
 import networkx as nx
 from langchain_community.graphs import Neo4jGraph
 from tqdm import tqdm
+import time
 
 sys.path.append('.')
 from dataloaders.UP_dataloader import roles as UP_roles
@@ -26,6 +27,8 @@ entity_nodes = [] # saves the span id used for the entity nodes
 bert_representation = [] # saves the representation of the span
 argm_nodes = [] # saves the span id used for the argm nodes
 argm_texts = [] # saves the text of the argm nodes
+entity_tokenizer = AutoTokenizer.from_pretrained("bert-large-cased")
+entity_model = AutoModel.from_pretrained("bert-large-cased")
 def check_existing_node(text, span_text, span_idx, role, id):
     if role.startswith("ARGM"):
         if span_text in argm_texts:
@@ -34,11 +37,9 @@ def check_existing_node(text, span_text, span_idx, role, id):
             argm_nodes.append(id)
             argm_texts.append(span_text)
     else:
-        # load a BERT base uncased model and use it to score similarity between the spans
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
-        model = AutoModel.from_pretrained("bert-base-cased")
+        # load a BERT model and use it to score similarity between the spans
         with torch.no_grad():
-            tokenized_text = tokenizer(text, return_tensors="pt")
+            tokenized_text = entity_tokenizer(text, return_tensors="pt")
             input_ids = tokenized_text['input_ids']
             attention_mask = tokenized_text['attention_mask']
             word_ids = tokenized_text.word_ids()
@@ -54,7 +55,7 @@ def check_existing_node(text, span_text, span_idx, role, id):
                     seen_ids.add(word_id)
                 word_ids[i] = word_id - delta
             
-            outputs = model(input_ids, attention_mask=attention_mask)
+            outputs = entity_model(input_ids, attention_mask=attention_mask)
 
             # get the mean of the last hidden states for the span
             last_hidden_states = outputs.last_hidden_state
@@ -132,6 +133,29 @@ def get_spans(text, role_logits, threshold=0.75, mode="t"):
 
     return final_spans
 
+def query_neo4j(graph, query):
+    """
+        Query the Neo4j database
+
+        Parameters:
+            graph: The Neo4jGraph object
+            query: The query to execute
+
+        Returns:
+            The results of the query
+    """
+    succesful = False
+    while not succesful:
+        try:
+            results = graph.query(query)
+            succesful = True
+        except Exception as e:
+            print(f"Error executing query: {e}")
+            succesful = False
+            #wait for 5 seconds
+            time.sleep(5)
+    return results
+
 def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0, aggregate_spans="t"):
     """
         Populate the knowledge graph with the results of the inference
@@ -160,7 +184,7 @@ def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0,
         }
 
         # Create relation node in Neo4j
-        graph.query(f"CREATE (n:Relation {{id: '{relation_node['id']}', text: '{relation_node['text']}', role: '{relation_node['role']}'}})")
+        query_neo4j(graph, f"CREATE (n:Relation {{id: '{relation_node['id']}', text: '{relation_node['text']}', role: '{relation_node['role']}'}})")
 
         for span, pos, role in spans:
             span_text = " ".join(span)
@@ -175,13 +199,13 @@ def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0,
             span_node["id"] = check_existing_node(text, span_text, pos, role, span_node["id"])
 
             # Create span node in Neo4j
-            graph.query(f"CREATE (n:Span {{id: '{span_node['id']}', text: '{span_node['text']}', role: '{span_node['role']}'}})")
+            query_neo4j(graph, f"CREATE (n:Span {{id: '{span_node['id']}', text: '{span_node['text']}', role: '{span_node['role']}'}})")
 
             # Connect span node to the relation node with the role as the type of connection
             role = role.replace("-", "_")  # Replace dashes with underscores for Neo4j compatibility
-            graph.query(f"""
-            MATCH (a:Relation {{id: '{relation_node['id']}'}}), (b:Span {{id: '{span_node['id']}'}})
-            CREATE (a)-[:{role}]->(b)
+            query_neo4j(graph, f"""
+                MATCH (a:Relation {{id: '{relation_node['id']}'}}), (b:Span {{id: '{span_node['id']}'}})
+                CREATE (a)-[:{role}]->(b)
             """)
 
 def fetch_graph_data(graph):
@@ -200,8 +224,8 @@ def fetch_graph_data(graph):
     query_rels = "MATCH (n)-[r]->(m) RETURN n, type(r) as rel_type, m"
 
     # Use the query method provided by Neo4jGraph
-    nodes = graph.query(query_nodes)
-    relationships = graph.query(query_rels)
+    nodes = query_neo4j(graph, query_nodes)
+    relationships = query_neo4j(graph, query_rels)
 
     # Create a NetworkX graph
     G = nx.DiGraph()
@@ -249,7 +273,7 @@ def create_cytoscape_elements(G):
     return elements
 
 def clean_database(graph):
-    graph.query("MATCH (n) DETACH DELETE n")
+    query_neo4j(graph, "MATCH (n) DETACH DELETE n")
 
 def fetch_wikipedia_article(title):
     """
@@ -318,7 +342,7 @@ def compute_graph(graph, mode):
 
         relational_logits, senses_logits, results = model.inference(sentence)
 
-        if (len(results) > 0):
+        if (results and len(results) > 0):
             populate_knowledge_graph(relational_logits, results[0], sentence, graph, i, aggregate_spans)
         i += 1
 
@@ -371,7 +395,7 @@ if __name__ == '__main__':
     # Initialize the Neo4j connection
     url = "neo4j+s://70b9b6b6.databases.neo4j.io"
     username = "neo4j"
-    password = ""
+    password = "4euztjZ-dqQH2HwstTtkxsmznyjfvoHugK2puR3he78"
     graph = Neo4jGraph(
         url=url,
         username=username,

@@ -172,7 +172,8 @@ class SRL_MODEL(nn.Module):
         role_layers = [role_classifer_input_size] + role_layers + [role_classes]
         self.role_layers = []
         for i in range(len(role_layers) - 1):
-            self.role_layers.append(nn.Linear(role_layers[i], role_layers[i+1]))
+            layer = nn.Linear(role_layers[i], role_layers[i + 1])
+            self.role_layers.append(layer)
             if i < len(role_layers) - 2:
                 self.role_layers.append(nn.ReLU())
         self.role_classifier = nn.Sequential(*self.role_layers)
