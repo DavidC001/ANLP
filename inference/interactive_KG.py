@@ -11,6 +11,8 @@ import networkx as nx
 from langchain_community.graphs import Neo4jGraph
 from tqdm import tqdm
 import time
+from dotenv import load_dotenv
+import os
 
 sys.path.append('.')
 from dataloaders.UP_dataloader import roles as UP_roles
@@ -392,10 +394,11 @@ def serve_KG(graph):
     app.run() 
 
 if __name__ == '__main__':
+    load_dotenv()
     # Initialize the Neo4j connection
-    url = "neo4j+s://70b9b6b6.databases.neo4j.io"
-    username = "neo4j"
-    password = "4euztjZ-dqQH2HwstTtkxsmznyjfvoHugK2puR3he78"
+    url = os.getenv("NEO4JS_URL")
+    username = os.getenv("NEO4JS_USER")
+    password = os.getenv("NEO4JS_PASSWORD")
     graph = Neo4jGraph(
         url=url,
         username=username,

@@ -20,3 +20,4 @@ torchviz==0.0.2
 tqdm==4.66.2
 transformers==4.41.2
 wikipedia==1.4.0
+python-dotenv

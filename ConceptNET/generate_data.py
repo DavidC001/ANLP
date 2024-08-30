@@ -2,6 +2,10 @@ import requests
 from openai import OpenAI
 from nltk.tokenize import TreebankWordTokenizer, sent_tokenize
 import wikipedia
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Define the ConceptNet API endpoint
 CONCEPTNET_API = "http://api.conceptnet.io"
@@ -9,7 +13,7 @@ CONCEPTNET_API = "http://api.conceptnet.io"
 # Set up the OpenAI client pointing to the local LM Studio server
 local = OpenAI(base_url="http://localhost:5000/v1", api_key="lm-studio")
 # client to use the OpenAI API (get key from .env file)
-OPENAI_KEY = ""
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_KEY)
 
 

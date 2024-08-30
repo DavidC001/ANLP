@@ -2,9 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from openai import OpenAI
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 # Point to the local server
-OPENAI_KEY = ""
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=OPENAI_KEY)
 # client = OpenAI(base_url="http://localhost:5000/v1", api_key="lm-studio")
 
@@ -36,8 +39,7 @@ def process_with_llm(content):
     
     Provide the mapping in JSON format with the proposition sense (the role set id like be.01) as the key. return ONLY the JSON object.
     """
-    # model = "gpt-3.5-turbo"
-    model = "gpt-4o"
+    model = "gpt-4o-mini"
     # model="lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF"
     completion = client.chat.completions.create(
         model=model,
