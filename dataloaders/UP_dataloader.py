@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 from torch import nn
 import sys 
+from copy import deepcopy
 sys.path.append('.')
 
 # BERT fast TOKENIZER
@@ -64,6 +65,8 @@ class UP_Dataset(Dataset):
         lines = open(file_path, encoding='utf-8').readlines()
 
         self.data = {}
+
+        self.train = "train" in file_path
 
         for line in lines:
             data = line.split('\t')
@@ -130,7 +133,50 @@ class UP_Dataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        # 25% chanche of concatenating two phrases
+        if torch.rand(1) < 0.25 and self.train:
+            idx2 = idx
+            while idx2 == idx:
+                idx2 = torch.randint(0, len(self.data), (1,)).item()
+
+            text = self.data[idx]['text'] + ' ' + self.data[idx2]['text']
+            tokenized_text = self.data[idx]['tokenized_text'][:-1] + self.data[idx2]['tokenized_text'][1:]
+            attention_mask = self.data[idx]['attention_mask'][:-1] + self.data[idx2]['attention_mask'][1:]
+
+            sent1_len = max(self.data[idx]['word_ids']) + 1
+            sent2_len = max(self.data[idx2]['word_ids']) + 1
+
+            word_ids = self.data[idx]['word_ids'][:-1] + [i + sent1_len if i!=-1 else i for i in self.data[idx2]['word_ids'][1:]]
+
+            labels = []
+            for i in range(len(self.data[idx]['labels'])):
+                # deepcopy
+                l = deepcopy(self.data[idx]['labels'][i])
+                l["SRL"] = l["SRL"] + [[]] * (sent2_len)
+                labels.append(l)
+            for i in range(len(self.data[idx2]['labels'])):
+                l = deepcopy(self.data[idx2]['labels'][i])
+                l["SRL"] = [[]] * (sent1_len) + l["SRL"]
+                labels.append(l)
+            
+            rel_position = self.data[idx]['rel_position'] + [i+sent1_len for i in self.data[idx2]['rel_position']]
+            
+        else:
+            text = self.data[idx]['text']
+            tokenized_text = self.data[idx]['tokenized_text']
+            attention_mask = self.data[idx]['attention_mask']
+            word_ids = self.data[idx]['word_ids']
+            labels = self.data[idx]['labels']
+            rel_position = self.data[idx]['rel_position']
+        
+        return {
+            'text': text,
+            'tokenized_text': tokenized_text,
+            'attention_mask': attention_mask,
+            'word_ids': word_ids,
+            'labels': labels,
+            'rel_position': rel_position
+        }
 
 def print_one_item(batch):
     for i in range(len(batch['text'])):
