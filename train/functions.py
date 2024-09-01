@@ -25,7 +25,7 @@ def smooth_labels(labels: torch.Tensor, epsilon: float=0.1):
         sum_noise = random_noise.sum(dim=-1, keepdim=True)
         random_noise = random_noise / sum_noise * (epsilon * labels.sum(dim=-1, keepdim=True))
         labels = labels * (1 - epsilon) + random_noise
-    breakpoint()
+    # breakpoint()
     return labels
 
 # RELATION FUNCTIONS
