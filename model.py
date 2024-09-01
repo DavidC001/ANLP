@@ -86,7 +86,7 @@ class SRL_MODEL(nn.Module):
                 model_name (str): the name of the pretrained encoder model to use
                 sense_classes (int): the number of classes for the senses classifier (not used in current implementation)
                 role_classes (int): the number of classes for the role classifier
-                combine_method (str): the method to combine the hidden states of the words and relations, can be 'mean', 'concatenation', 'gating' or 'gating_transform'
+                combine_method (str): the method to combine the hidden states of the words and relations, can be 'mean', 'concatenation', 'gating' or 'soft_attention'
                 norm_layer (bool): whether to use a normalization layer after the combination
                 proj_dim (int): the size of the hidden states after the projection
                 relation_proj (bool): whether to project the hidden states before the relational classifier
@@ -113,7 +113,7 @@ class SRL_MODEL(nn.Module):
             for param in self.bert.parameters():
                 param.requires_grad = False
         
-        self.combine_method = combine_method  # 'mean', 'concatenation', 'gating'
+        self.combine_method = combine_method  # 'mean', 'concatenation', 'soft_attention', 'gating'
         hidden_size = self.bert.config.hidden_size
         role_size = hidden_size
         
@@ -146,8 +146,8 @@ class SRL_MODEL(nn.Module):
             self.relational_classifier = nn.Linear(hidden_size, 1)
 
         # Initialize the module to combine the hidden states
-        if combine_method.startswith('gating'):
-            self.combiner = GatedCombination(role_size, transform=(combine_method == 'gating_transform'))
+        if combine_method == "gating" or combine_method == "soft_attention":
+            self.combiner = GatedCombination(role_size, transform=(combine_method == 'soft_attention'))
 
         # Configure input size based on combination method
         if combine_method == 'concatenation':
@@ -289,7 +289,7 @@ class SRL_MODEL(nn.Module):
                         combined_states = (word_hidden_states + relation_hidden_state) / 2
                     elif(self.combine_method == 'concatenation'):
                         combined_states = torch.cat([relation_hidden_state.expand_as(word_hidden_states), word_hidden_states], dim=-1)
-                    elif(self.combine_method == 'gating' or self.combine_method == 'gating_transform'):
+                    elif(self.combine_method == 'gating' or self.combine_method == 'soft_attention'):
                         combined_states = self.combiner(relation_hidden_state, word_hidden_states)
                     
                     relation_hidden_states.append(combined_states)

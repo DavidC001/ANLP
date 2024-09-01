@@ -12,7 +12,7 @@ def train_SRL():
     tests = {
         "TEST": {
             "model_name": "distilbert-base-uncased", # name of the encoder model to use
-            "combine_method": "gating_transform", # how to combine the predicate and word representations
+            "combine_method": "gating", # how to combine the predicate and word representations
             "role_layers": [256], # hidden dimensions of the role classifier
             "norm_layer": True, # whether to apply layer normalization
             "proj_dim": 512, # dimension of the projection layer

@@ -83,7 +83,7 @@ In the script it's possible to define the tests to run, the model hyperparameter
 tests = {
         "SRL_DISTILBERT": {
             "model_name": "distilbert-base-uncased", # name of the encoder model to use
-            "combine_method": "gating_transform", # how to combine the predicate and word representations, can be "sum", "concat", "gating", "gating_transform"
+            "combine_method": "gating", # how to combine the predicate and word representations, can be "sum", "concat", "soft_attention", "gating"
             "role_layers": [256], # hidden dimensions of the role classifier
             "norm_layer": True, # whether to apply layer normalization
             "proj_dim": 512, # dimension of the projection layer
