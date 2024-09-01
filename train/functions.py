@@ -19,11 +19,14 @@ def smooth_labels(labels: torch.Tensor, epsilon: float=0.1):
         Returns:
             The smoothed labels
     """
-    # add random noise to the labels
-    random_noise = torch.rand(labels.shape) 
-    sum_noise = random_noise.sum(dim=-1, keepdim=True)
-    random_noise = random_noise / sum_noise * epsilon
-    labels = labels * (1 - epsilon) + random_noise
+    with torch.no_grad():
+        # add random noise to the labels
+        random_noise = torch.rand(labels.shape).to(labels.device)
+        sum_noise = random_noise.sum(dim=-1, keepdim=True)
+        random_noise = random_noise / sum_noise * (epsilon * labels.sum(dim=-1, keepdim=True))
+        labels = labels * (1 - epsilon) + random_noise
+    breakpoint()
+    return labels
 
 # RELATION FUNCTIONS
 
