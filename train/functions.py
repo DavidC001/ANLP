@@ -19,7 +19,11 @@ def smooth_labels(labels: torch.Tensor, epsilon: float=0.1):
         Returns:
             The smoothed labels
     """
-    return labels * (1 - epsilon) + (epsilon / labels.shape[-1])
+    # add random noise to the labels
+    random_noise = torch.rand(labels.shape) 
+    sum_noise = random_noise.sum(dim=-1, keepdim=True)
+    random_noise = random_noise / sum_noise * epsilon
+    labels = labels * (1 - epsilon) + random_noise
 
 # RELATION FUNCTIONS
 
@@ -336,7 +340,6 @@ def train_step(model: SRL_MODEL, train_loader: DataLoader, optimizer: optim.Opti
 
     # Set the model to training mode
     model.train()
-    grads = None
 
     total_loss = 0
 
@@ -647,10 +650,6 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
         ], lr=init_lr)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
-    noise_increment = noise / (epochs-1)
-    # breakpoint()
-    noise = 0
-
     for epoch in tqdm(range(epochs)):
         train_result = train_step(model=model, 
                                   train_loader=train_loader, optimizer=optimizer, 
@@ -673,7 +672,6 @@ def train(model: SRL_MODEL, train_loader: DataLoader, val_loader: DataLoader, te
         tensorboard.add_scalar('Learning Rate/other', optimizer.param_groups[1]['lr'], epoch)
 
         scheduler.step()
-        noise += noise_increment
 
     final_result = eval_step(model, train_loader, 
                              F1_loss_power=F1_loss_power, 
