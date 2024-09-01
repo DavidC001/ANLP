@@ -81,17 +81,18 @@ In the script it's possible to define the tests to run, the model hyperparameter
 
 ```python
 tests = {
-        "SRL_DISTILBERT_gated_redboth100_100_norm_cosineLR_weightedLoss": {
-            "model_name": "distilbert/distilbert-base-uncased",
-            "combine_method": "gating", # can be "concatenation" - "mean" - "gating" (soft attention) - "gating transform"
-            "role_layers": [100],
-            "role_LSTM": False,
-            "norm_layer": True,
-            "proj_dim": 100,
-            "relation_proj": True,
-            "train_encoder": True,
-            "train_embedding_layer": False,
-            "dropout_prob": 0.1,
+        "SRL_DISTILBERT": {
+            "model_name": "distilbert-base-uncased", # name of the encoder model to use
+            "combine_method": "gating_transform", # how to combine the predicate and word representations, can be "sum", "concat", "gating", "gating_transform"
+            "role_layers": [256], # hidden dimensions of the role classifier
+            "norm_layer": True, # whether to apply layer normalization
+            "proj_dim": 512, # dimension of the projection layer
+            "relation_proj": True, # whether to project the relation representation
+            "role_RNN": True, # whether to use a LSTM layer in the role classifier
+            "RNN_type": "GRU", # type of RNN layer "RNN", "LSTM", "GRU"
+            "train_encoder": True, # whether to train the encoder
+            "train_embedding_layer": True, # whether to train the embedding layer
+            "dropout_prob": 0.5, # dropout rate
         },
 }
 ```
