@@ -37,7 +37,7 @@ def train_SRL():
         "weight_role_labels": False, # whether to weight the role labels
         "noise": 0.2, # noise to add to the input
         "random_sostitution_prob": 0.1, # probability of randomly substituting a word with UNK token
-        "device": 'cuda', # device to use
+        "device": 'cuda' if torch.cuda.is_available() else 'cpu', # device to use
     }
 
     # Choose dataset UP or NOM
@@ -55,11 +55,13 @@ def train_SRL():
         tests[test]["sense_classes"] = num_senses
         tests[test]["role_classes"] = num_roles
 
-        model = SRL_MODEL(**tests[test])
+        model = SRL_MODEL(**tests[test], device=training_params["device"])
         print(f"Total number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters())}")
         print(f"Number of parameters in the classifiers: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
-        train(model, train_loader, val_loader, test_loader, name=test, dataset=dataset, **training_params)
+        train(model, train_loader, val_loader, test_loader, 
+              name=test, dataset=dataset, 
+              **training_params)
         
         # Save the model
         torch.save(model.state_dict(), f"models/{test}.pt")
