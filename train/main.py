@@ -25,6 +25,21 @@ def train_SRL():
         },
     }
 
+    training_params = {
+        "epochs": 10, # number of epochs
+        "init_lr": 0.001, # initial learning rate
+        "lr_encoder": 1e-5, # learning rate for the encoder
+        "F1_loss_power": 1, # power to use in the F1 loss
+        "patience": 3, # patience for the early stopping
+        "role_threshold": 0.5, # threshold for the role classifier
+        "group_roles": True, # whether to group the roles
+        "top": False, # whether to use the top-k roles
+        "weight_role_labels": False, # whether to weight the role labels
+        "noise": 0.2, # noise to add to the input
+        "random_sostitution_prob": 0.1, # probability of randomly substituting a word with UNK token
+        "device": 'cuda', # device to use
+    }
+
     # Choose dataset UP or NOM
     dataset = "UP"
 
@@ -44,17 +59,15 @@ def train_SRL():
         print(f"Total number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters())}")
         print(f"Number of parameters in the classifiers: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
-        train(model, train_loader, val_loader, test_loader,
-            epochs=10, init_lr=0.001, lr_encoder=1e-5, F1_loss_power=0,
-            role_threshold=0.5, group_roles=True, top=False, 
-            noise=0.2, random_sostitution_prob=0.1,
-            device='cuda', name=test, dataset=dataset)
+        train(model, train_loader, val_loader, test_loader, name=test, dataset=dataset, **training_params)
         
         # Save the model
         torch.save(model.state_dict(), f"models/{test}.pt")
-        # Save json with the test parameters
+        # Save json with the test parameters of the model and the training parameters
         with open(f"models/{test}.json", "w") as f:
-            json.dump(tests[test], f, indent=4)
+            json.dump(tests[test], f)
+        with open(f"models/{test}_training_setup.json", "w") as f:
+            json.dump(training_params, f)
 
         print("-"*50)
 
