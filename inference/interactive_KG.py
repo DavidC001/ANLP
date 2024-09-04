@@ -5,7 +5,7 @@ import json
 import sys
 import wikipedia
 import re
-from dash import Dash, dcc, html, Input, Output
+from dash import Dash, dcc, html, Input, Output, State
 import dash_cytoscape as cyto
 import networkx as nx
 from langchain_community.graphs import Neo4jGraph
@@ -23,6 +23,17 @@ roles = []
 
 def escape_text(text):
     return re.sub(r"([\'\"\\])", r"\\\1", text)
+
+
+# Initialize the model
+model_name = input("Enter the name of the model to use: ")
+with open(f"models/{model_name}.json", "r") as f:
+    config = json.load(f)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+config["device"] = device
+model = SRL_MODEL(**config)
+model.load_state_dict(torch.load(f"models/{model_name}.pt"))
 
 # function to check if a span corresponds to an already existing node in the graph, for ARGM use exact match, for the others use a subset match
 entity_nodes = [] # saves the span id used for the entity nodes
@@ -81,7 +92,8 @@ def check_existing_node(text, span_text, span_idx, role, id):
     
     return id
 
-def get_spans(text, role_logits, threshold=0.75, mode="t"):
+# function to get the spans of the roles from the logits
+def get_spans(text, role_logits, threshold=0.5, mode="t"):
     """
         Get the spans of the roles from the logits
 
@@ -95,7 +107,7 @@ def get_spans(text, role_logits, threshold=0.75, mode="t"):
             The spans of the roles
     """
     role_spans = {}
-
+    # breakpoint()
     for idx, logits in enumerate(role_logits):
         for role_idx, logit in enumerate(logits):
             prob = torch.sigmoid(logit)
@@ -135,6 +147,7 @@ def get_spans(text, role_logits, threshold=0.75, mode="t"):
 
     return final_spans
 
+# function to query the Neo4j database
 def query_neo4j(graph, query):
     """
         Query the Neo4j database
@@ -158,6 +171,7 @@ def query_neo4j(graph, query):
             time.sleep(5)
     return results
 
+# function to populate the knowledge graph with the results of the inference
 def populate_knowledge_graph(relational_logits, results, text, graph, sent_id=0, aggregate_spans="t"):
     """
         Populate the knowledge graph with the results of the inference
@@ -316,16 +330,6 @@ def compute_graph(graph, mode):
         with open("text.txt", "r", encoding="utf-8") as f:
             article_content = f.read()
 
-    # Initialize the model
-    model_name = input("Enter the name of the model to use: ")
-    with open(f"models/{model_name}.json", "r") as f:
-        config = json.load(f)
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    config["device"] = device
-    model = SRL_MODEL(**config)
-    model.load_state_dict(torch.load(f"models/{model_name}.pt"))
-
     separate_sentences = input("Do you want to process each sentence separately? (y/n): ")
     # Split the article into sentences
     if separate_sentences == "y":
@@ -348,6 +352,102 @@ def compute_graph(graph, mode):
             populate_knowledge_graph(relational_logits, results[0], sentence, graph, i, aggregate_spans)
         i += 1
 
+
+def parse_natural_language_query(query, model):
+    """
+    Parse a natural language query using the SRL model.
+
+    Parameters:
+        query: The natural language query string
+        model: The SRL model instance
+
+    Returns:
+        A structured format of the query (e.g., list of entities and relationships)
+    """
+    tokenizer = TreebankWordTokenizer()
+    query_tokens = tokenizer.tokenize(query)
+
+    # Perform SRL inference
+    relational_logits, senses_logits, results = model.inference(query)
+    
+    if results and len(results) > 0:
+        spans = []
+        for result in results[0]:
+            spans.extend(get_spans(query_tokens, result, threshold=0.5, mode="a"))
+        return spans
+    else:
+        return None
+
+def map_to_cypher_query(parsed_query):
+    """
+    Convert the parsed query from SRL model output to a Cypher query.
+
+    Parameters:
+        parsed_query: The parsed query output from the SRL model
+
+    Returns:
+        A Cypher query string
+    """
+    if not parsed_query:
+        return None
+
+    # Initialize lists to hold MATCH and WHERE clauses
+    match_clauses = []
+    where_clauses = []
+
+    # Construct MATCH and WHERE clauses based on the parsed query
+    for span_text, span_pos, role in parsed_query:
+        # Convert the span text to a plain string
+        span_text_str = " ".join(span_text)
+
+        where_clauses.append(f"n.text CONTAINS '{span_text_str}' OR m.text CONTAINS '{span_text_str}'")
+
+    # Construct the MATCH clause
+    cypher_query = "MATCH (n)<-[r]-(P)-[r2]->(m)"
+
+    # Construct the WHERE clause if conditions are available
+    if where_clauses:
+        cypher_query += " WHERE " + " OR ".join(where_clauses)
+
+    # Add the RETURN statement to complete the Cypher query
+    cypher_query += " RETURN n, type(r) as r, P, type(r2) as r2, m"
+    return cypher_query
+
+
+def query_neo4j_with_nl(graph, query, model):
+    """
+    Query the Neo4j database using a natural language query.
+
+    Parameters:
+        graph: The Neo4jGraph object
+        query: The natural language query string
+        model: The SRL model instance
+
+    Returns:
+        The results of the query
+    """
+    # Parse the natural language query
+    parsed_query = parse_natural_language_query(query, model)
+    
+    if not parsed_query:
+        print("Could not parse the query.")
+        return None
+
+    # Convert to Cypher query
+    cypher_query = map_to_cypher_query(parsed_query)
+
+    if not cypher_query:
+        print("Could not map the query to Cypher.")
+        return None
+
+    # Execute the Cypher query
+    results = query_neo4j(graph, cypher_query)
+
+    # breakpoint()
+    return results
+
+
+
 def serve_KG(graph):
     """
         Serve the knowledge graph visualization using Dash
@@ -362,6 +462,8 @@ def serve_KG(graph):
     app = Dash(__name__)
 
     app.layout = html.Div([
+        dcc.Input(id='nl-query', type='text', placeholder='Enter a natural language query'),
+        html.Button('Query', id='query-button', n_clicks=0),
         dcc.Dropdown(
             id='dropdown',
             options=[{'label': node[1]['label'], 'value': node[0]} for node in G.nodes(data=True) if node[1]['role'] == 'relation'],
@@ -382,14 +484,44 @@ def serve_KG(graph):
 
     @app.callback(
         Output('cytoscape', 'elements'),
-        Input('dropdown', 'value')
+        [Input('query-button', 'n_clicks'),
+        Input('dropdown', 'value')],
+        State('nl-query', 'value')
     )
-    def update_graph(selected_relation):
-        if not selected_relation:
-            return create_cytoscape_elements(G)
+    def update_graph(n_clicks, selected_relation, query):
+        # Use nonlocal to modify the global graph G
+        nonlocal G
 
-        subgraph = nx.ego_graph(G, selected_relation)
-        return create_cytoscape_elements(subgraph)
+        if n_clicks > 0 and query:
+            print(f"Natural language query received: {query}")
+            # Query the Neo4j database using the natural language query
+            results = query_neo4j_with_nl(graph, query, model)
+            if results:
+                # Create a new NetworkX graph with the results
+                G = nx.DiGraph()
+                for record in results:
+                    node1 = record['n']
+                    role1 = record['r']
+                    proposition = record['P']
+                    node2 = record['m']
+                    role2 = record['r2']
+
+                    G.add_node(node1['id'], label=node1['text'], role=node1['role'])
+                    G.add_node(node2['id'], label=node2['text'], role=node2['role'])
+                    G.add_node(proposition['id'], label=proposition['text'], role=proposition['role'])
+                    G.add_edge(node1['id'], proposition['id'], label=role1)
+                    G.add_edge(proposition['id'], node2['id'], label=role2)
+
+                return create_cytoscape_elements(G)
+
+        if selected_relation:
+            # If a relation is selected in the dropdown, filter the graph accordingly
+            subgraph = nx.ego_graph(G, selected_relation)
+            return create_cytoscape_elements(subgraph)
+
+        # Default case, return the entire graph
+        return create_cytoscape_elements(G)
+
 
     app.run() 
 
