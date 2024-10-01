@@ -8,6 +8,35 @@ import math
 
 from nltk.tokenize.treebank import TreebankWordTokenizer, TreebankWordDetokenizer
 
+class VariationalDropout(nn.Module):
+    """
+    Variational Dropout module.
+
+    This module applies variational dropout to the input tensor during training.
+    Variational dropout randomly sets elements of the input tensor to zero with a probability of `dropout_probability`.
+    The dropout mask is shared across the input sequence and is different for each batch.
+
+    Args:
+        dropout_probability (float): The probability of setting elements to zero. Should be in the range [0, 1].
+
+    Returns:
+        torch.Tensor: The input tensor after applying variational dropout.
+
+    """
+    def __init__(self, dropout_probability: float,):
+        super().__init__()
+        self.p = dropout_probability
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if not self.training or self.p <= 0.:
+            return x
+
+        batch_size = x.size(0)
+
+        mask = x.new_empty(batch_size, 1, x.size(2), requires_grad=False).bernoulli_(1 - self.p)
+        mask = mask / (1 - self.p)
+
+        return x * mask
 
 class GatedCombination(nn.Module):
     """
@@ -169,6 +198,7 @@ class SRL_MODEL(nn.Module):
         train_encoder=True,
         train_embedding_layer=True,
         dropout_prob=0,
+        variational_dropout=False,
         device="cuda",
     ):
         """
@@ -188,6 +218,8 @@ class SRL_MODEL(nn.Module):
             RNN_type (str): the type of RNN to use in the role classifier
             train_encoder (bool): whether to train the encoder model
             train_embedding_layer (bool): whether to train the embedding layer of the encoder model
+            dropout_prob (float): the dropout probability
+            variational_dropout (bool): whether to use variational dropout
             device (str): the device to use for the model
 
         """
@@ -247,7 +279,7 @@ class SRL_MODEL(nn.Module):
         self.norm = norm_layer
 
         # dropout layer
-        self.dropout = nn.Dropout(dropout_prob)
+        self.dropout = nn.Dropout(dropout_prob) if not variational_dropout else VariationalDropout(dropout_prob)
 
         # Initialize the module for the role classifier
         self.role_RNN = role_RNN
@@ -429,12 +461,13 @@ class SRL_MODEL(nn.Module):
 
         return relational_logits, senses_logits, results
 
-    def inference(self, text):
+    def inference(self, text, threshold=0.5):
         """
         Perform inference on a text
 
         Parameters:
             text (str): the text to perform inference on
+            threshold (float): the probability threshold to use
 
         Returns:
             relational_logits (torch.Tensor): the logits for the relational classifier
@@ -491,7 +524,7 @@ class SRL_MODEL(nn.Module):
             relation_positions = [
                 i
                 for i in range(len(relational_probabilities))
-                if relational_probabilities[i] > 0.75
+                if relational_probabilities[i] > threshold
             ]
             relation_positions = [word_ids.index(i) for i in relation_positions]
 
