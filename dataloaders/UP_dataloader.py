@@ -138,15 +138,17 @@ class UP_Dataset(Dataset):
             idx2 = idx
             while idx2 == idx:
                 idx2 = torch.randint(0, len(self.data), (1,)).item()
+            
+            datapoint = self.__getitem__(idx2)
 
-            text = self.data[idx]['text'] + ' ' + self.data[idx2]['text']
-            tokenized_text = self.data[idx]['tokenized_text'][:-1] + self.data[idx2]['tokenized_text'][1:]
-            attention_mask = self.data[idx]['attention_mask'][:-1] + self.data[idx2]['attention_mask'][1:]
+            text = self.data[idx]['text'] + ' ' + datapoint['text']
+            tokenized_text = self.data[idx]['tokenized_text'][:-1] + datapoint['tokenized_text'][1:]
+            attention_mask = self.data[idx]['attention_mask'][:-1] + datapoint['attention_mask'][1:]
 
             sent1_len = max(self.data[idx]['word_ids']) + 1
-            sent2_len = max(self.data[idx2]['word_ids']) + 1
+            sent2_len = max(datapoint['word_ids']) + 1
 
-            word_ids = self.data[idx]['word_ids'][:-1] + [i + sent1_len if i!=-1 else i for i in self.data[idx2]['word_ids'][1:]]
+            word_ids = self.data[idx]['word_ids'][:-1] + [i + sent1_len if i!=-1 else i for i in datapoint['word_ids'][1:]]
 
             labels = []
             for i in range(len(self.data[idx]['labels'])):
@@ -154,12 +156,12 @@ class UP_Dataset(Dataset):
                 l = deepcopy(self.data[idx]['labels'][i])
                 l["SRL"] = l["SRL"] + [[]] * (sent2_len)
                 labels.append(l)
-            for i in range(len(self.data[idx2]['labels'])):
-                l = deepcopy(self.data[idx2]['labels'][i])
+            for i in range(len(datapoint['labels'])):
+                l = deepcopy(datapoint['labels'][i])
                 l["SRL"] = [[]] * (sent1_len) + l["SRL"]
                 labels.append(l)
             
-            rel_position = self.data[idx]['rel_position'] + [i+sent1_len for i in self.data[idx2]['rel_position']]
+            rel_position = self.data[idx]['rel_position'] + [i+sent1_len for i in datapoint['rel_position']]
             
         else:
             text = self.data[idx]['text']
