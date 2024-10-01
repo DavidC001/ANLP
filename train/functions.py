@@ -388,11 +388,10 @@ def loss(
         noise,
     )
 
-    if rel_f1 > 0.9:
-        weight_rel /= rel_f1**F1_loss_power
+    eps = 1e-6
+    weight_rel /= (rel_f1+eps)**F1_loss_power
     # weight_sense /= sense_f1
-    if role_f1 > 0:
-        weight_role /= role_f1**F1_loss_power
+    weight_role /= (role_f1+eps)**F1_loss_power
     # print(f"Rel Loss: {rel_loss:.4f}, Role Loss: {rol_loss:.4f}")
     total_loss = (
         weight_rel * rel_loss + weight_role * rol_loss
@@ -847,14 +846,13 @@ def train(
         ],
         lr=init_lr,
     )
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=epochs, eta_min=1e-6
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, patience=1, factor=0.1, verbose=True
     )
 
     patience_counter = 0
     best_val_loss = float("inf")
-    best_model = None
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(34,epochs)):
         train_result = train_step(
             model=model,
             train_loader=train_loader,
@@ -890,16 +888,16 @@ def train(
             "Learning Rate/other", optimizer.param_groups[1]["lr"], epoch
         )
 
-        scheduler.step()
+        scheduler.step(val_result["loss"])
 
         if val_result["loss"] < best_val_loss:
             best_val_loss = val_result["loss"]
             patience_counter = 0
             torch.save(model.state_dict(), f"models/{name}.pt")
         else:
-            patience_counter += 1
             if patience_counter == patience:
                 break
+            patience_counter += 1
 
     model.load_state_dict(torch.load(f"models/{name}.pt"))
 
