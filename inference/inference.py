@@ -10,7 +10,7 @@ from dataloaders.NomBank_dataloader import roles as NOM_roles
 roles = []
 
 
-def print_results(relational_logits, senses_logits, results, text):
+def print_results(relational_logits, senses_logits, results, text, threshold):
     """
         Print the results of the inference
 
@@ -19,6 +19,7 @@ def print_results(relational_logits, senses_logits, results, text):
             senses_logits: The logits of the senses
             results: The logits of the roles
             text: The text of the sentence
+            threshold (float): the probability threshold to use
     """
     # tokenize the text as in the training (TreebankWordTokenizer)
     tokenizer = TreebankWordTokenizer()
@@ -36,7 +37,7 @@ def print_results(relational_logits, senses_logits, results, text):
     # print("Senses logits:")
     # print(senses_logits)
 
-    relation_positions = [i for i in range(len(relational_logits)) if nn.Sigmoid()(relational_logits[i]) > 0.75]
+    relation_positions = [i for i in range(len(relational_logits)) if nn.Sigmoid()(relational_logits[i]) > threshold]
 
     print("Role logits:")   
     for i, phrase_role_logits in enumerate(results): # for each phrase
@@ -49,7 +50,7 @@ def print_results(relational_logits, senses_logits, results, text):
                 predicted_roles = [
                     f"{roles[q+2]} {nn.Sigmoid()(role_logits[q]):.2f}"
                     for q in range(len(role_logits))
-                    if nn.Sigmoid()(role_logits[q]) > 0.75 and q != 0
+                    if nn.Sigmoid()(role_logits[q]) > threshold and q != 0
                 ]
 
                 print(f"\t\tWord: {text[k]} - predicted roles: {predicted_roles}")
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     with open(f"models/{name}.json", "r") as f:
         config = json.load(f)
     
-    threshold = input("Insert the threshold to use for the roles: ")
+    threshold = float(input("Insert the threshold to use for the roles: "))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     config["device"] = device
@@ -85,6 +86,6 @@ if __name__ == '__main__':
     print(f"Number of parameters in the model: {sum(p[1].numel() for p in model.named_parameters() if 'bert' not in p[0])}")
 
     while text != "exit":
-        relational_logits, senses_logits, results = model.inference(text)
-        print_results(relational_logits, senses_logits, results, text)
+        relational_logits, senses_logits, results = model.inference(text, threshold=threshold)
+        print_results(relational_logits, senses_logits, results, text, threshold)
         text = input("Insert a sentence to analyze (type 'exit' to quit): ")
