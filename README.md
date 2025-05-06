@@ -40,8 +40,8 @@ This project is part of the master course "Applied Natural Language Processing" 
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/yourusername/srl-bert.git
-    cd srl-bert
+    git clone https://github.com/DavidC001/ANLP.git
+    cd ANLP
     ```
 
 2. **Install dependencies**:
