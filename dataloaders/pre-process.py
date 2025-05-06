@@ -1,6 +1,11 @@
+import os
+import sys
+sys.path.append('.')
+sys.path.append('..')
+
 from dataloaders.preprocess_nombank import main as preprocess_UP
 from dataloaders.preprocess_UP import main as preprocess_nombank
-import os
+
 
 def preprocess_datasets(UP=True, nombank=False):
     # create folder datasets/preprocessed

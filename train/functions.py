@@ -847,7 +847,7 @@ def train(
         lr=init_lr,
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=1, factor=0.1, verbose=True
+        optimizer, patience=1, factor=0.1
     )
 
     patience_counter = 0

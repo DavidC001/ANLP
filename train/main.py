@@ -13,33 +13,33 @@ torch.manual_seed(0)
 
 def train_SRL():
     tests = {
-        "small_distil": {
-            "model_name": "distilbert-base-uncased",  # name of the encoder model to use
+        "roberta_base": {
+            "model_name": "roberta-base",  # name of the encoder model to use
             
-            "combine_method": "multiHeadAttention",  # how to combine the predicate and word representations
-            "attention_heads": 1,  # number of attention heads, if multiHeadAttention is used
-            "FFN_layers": 2,  # number of layers in the FFN for the combined representation
+            "combine_method": "soft_attention",  # how to combine the predicate and word representations
+            # "attention_heads": 16,  # number of attention heads, if multiHeadAttention is used
+            "FFN_layers": 1,  # number of layers in the FFN for the combined representation
             "norm_layer": True,  # whether to apply layer normalization
             
             "role_RNN": True,  # whether to use a LSTM layer in the role classifier
             "RNN_type": "GRU",  # type of RNN layer
 
-            "proj_dim": 256,  # dimension of the projection layer
+            "proj_dim": 512,  # dimension of the projection layer
             "relation_proj": True,  # whether to project the relation representation
             
             "train_encoder": True,  # whether to train the encoder
-            "train_embedding_layer": True,  # whether to train the embedding layer
-            "dropout_prob": 0.5,  # dropout rate
+            "train_embedding_layer": False,  # whether to train the embedding layer
+            "dropout_prob": 0.2,  # dropout rate
             "variational_dropout": True,  # whether to use variational dropout
         },
     }
 
     training_params = {
         "epochs": 100,  # number of epochs
-        "init_lr": 1e-5,  # initial learning rate
-        "lr_encoder": 1e-7,  # learning rate for the encoder
+        "init_lr": 1e-3,  # initial learning rate
+        "lr_encoder": 1e-5,  # learning rate for the encoder
         "F1_loss_power": 0.5,  # power to use in the F1 loss
-        "patience": 3,  # patience for the early stopping
+        "patience": 5,  # patience for the early stopping
         "role_threshold": 0.5,  # threshold for the role classifier
         "group_roles": True,  # whether to group the roles
         "top": False,  # whether to use the top-k roles
@@ -82,7 +82,9 @@ def train_SRL():
             model.load_state_dict(torch.load(f"models/{test}.pt"))
             print("Model loaded from previous training")
 
-
+        # create the folder models if it does not exist
+        if not os.path.exists("models"):
+            os.makedirs("models")
         # Save json with the test parameters of the model and the training parameters
         with open(f"models/{test}.json", "w") as f:
             json.dump(tests[test], f)
